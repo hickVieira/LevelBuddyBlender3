@@ -1,9 +1,15 @@
-# [Level Buddy](https://matt-lucas.itch.io/level-buddy)
+# [Level Buddy for Blender 3.0](https://matt-lucas.itch.io/level-buddy)
 
 **Level Buddy** is a Blender add-on written by Matt Lucas.
 
-This repository is a mirror of the official download
+This repository is a mirror of the (old) official download
 [available on itch.io](https://matt-lucas.itch.io/level-buddy).
+
+## Notes
+- It's kind of working
+- It's filled with bugs
+- Haven't tested everything out yet
+- Need to clean up UI
 
 ## License
 
