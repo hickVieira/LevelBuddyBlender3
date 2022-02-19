@@ -361,7 +361,10 @@ class LevelBuddyPanel(bpy.types.Panel):
         col.operator("scene.level_buddy_empty_trash", icon="ERROR")
         # layout.separator()
         col = layout.column(align=True)
-        col.label(icon="SNAP_PEEL_OBJECT", text="New Sector")
+        col.label(icon="SNAP_PEEL_OBJECT", text="Level Tools")
+        if bpy.context.mode == 'EDIT_MESH':
+            col.operator("object.level_rip_sector", text="Rip Sector", icon="SURFACE_NCURVE").remove_geometry = True
+            col.operator("object.level_rip_sector", text="Duplicate Sector", icon="SURFACE_NCURVE").remove_geometry = False
         col.operator("scene.level_new_geometry", text="New 2D Sector", icon="SURFACE_NCURVE").s_type = 'SECTOR_2D'
         col.operator("scene.level_new_geometry", text="New 3D Sector", icon="SNAP_FACE").s_type = 'SECTOR_3D'
         col.operator("scene.level_new_geometry", text="New Brush Add", icon="SNAP_VOLUME").s_type = 'BRUSH_ADD'
@@ -445,6 +448,75 @@ class LevelUpdateSector(bpy.types.Operator):
         selected_objects = bpy.context.selected_objects
         for ob in selected_objects:
             update_sector_plane_modifier(ob)
+        return {"FINISHED"}
+
+
+class LevelRipSector(bpy.types.Operator):
+    bl_idname = "object.level_rip_sector"
+    bl_label = "Level Rip Sector"
+
+    remove_geometry : bpy.props.BoolProperty(name="remove_geometry", default=False)
+
+    def execute(self, context):
+        active_obj = bpy.context.active_object
+
+        active_obj_bm = bmesh.from_edit_mesh(active_obj.data)
+        riped_obj_bm = bmesh.new()
+
+        # https://blender.stackexchange.com/questions/179667/split-off-bmesh-selected-faces
+        active_obj_bm.verts.ensure_lookup_table()
+        active_obj_bm.edges.ensure_lookup_table()
+        active_obj_bm.faces.ensure_lookup_table()
+
+        selected_faces = [x for x in active_obj_bm.faces if x.select]
+        selected_edges = [x for x in active_obj_bm.edges if x.select]
+
+        py_verts = []
+        py_faces = []
+
+        for f in selected_faces:
+            cur_face_indices = []
+
+            for v in f.verts:
+                if v not in py_verts:
+                    py_verts.append(v)
+
+                cur_face_indices.append(py_verts.index(v))
+
+            py_faces.append(cur_face_indices)
+
+            if self.remove_geometry:
+                active_obj_bm.faces.remove(f)
+        
+        if self.remove_geometry:
+            for e in selected_edges:
+                if e.is_wire:
+                    active_obj_bm.edges.remove(e)
+                
+        riped_mesh = bpy.data.meshes.new(name='riped_mesh')
+
+        mat = active_obj.matrix_world
+        riped_mesh.from_pydata([mat @ x.co for x in py_verts], [], py_faces)
+
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.select_all(action='DESELECT')
+
+        # riped_obj = bpy.data.objects.new(name='output', object_data = riped_mesh)
+        riped_obj = active_obj.copy()
+        riped_obj.data = riped_mesh
+        copy_materials(riped_obj, active_obj)
+        bpy.context.scene.collection.objects.link(riped_obj)
+
+        riped_obj.select_set(True)
+        bpy.context.view_layer.objects.active = riped_obj
+        bpy.ops.object.mode_set(mode='EDIT')
+
+        bpy.ops.mesh.select_all(action='SELECT')
+
+        active_obj_bm.free()
+        riped_obj_bm.free()
+
         return {"FINISHED"}
 
 
@@ -558,6 +630,7 @@ def register():
     bpy.utils.register_class(LevelBuddyBuildMap)
     bpy.utils.register_class(LevelUpdateSector)
     bpy.utils.register_class(LevelNewGeometry)
+    bpy.utils.register_class(LevelRipSector)
     bpy.utils.register_class(LevelCleanupPrecision)
     bpy.utils.register_class(LevelEmptyTrash)
 
@@ -567,6 +640,7 @@ def unregister():
     bpy.utils.unregister_class(LevelBuddyBuildMap)
     bpy.utils.unregister_class(LevelUpdateSector)
     bpy.utils.unregister_class(LevelNewGeometry)
+    bpy.utils.unregister_class(LevelRipSector)
     bpy.utils.unregister_class(LevelCleanupPrecision)
     bpy.utils.unregister_class(LevelEmptyTrash)
 
