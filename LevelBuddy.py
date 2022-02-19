@@ -538,7 +538,7 @@ class LevelBuddyBuildMap(bpy.types.Operator):
             brushAdd_list[i].name = "brush_add" + str(i)
             bool_obj = build_bool_object(brushAdd_list[i])
             auto_texture(bool_obj, brushAdd_list[i])
-            apply_boolean(level_map, brushAdd_list[i], bool_obj, 'UNION')
+            apply_boolean(level_map, brushAdd_list[i], bool_obj, 'DIFFERENCE')
             update_location_precision(level_map)
 
         for i in range(0, len(brushSub_list)):
