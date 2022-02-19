@@ -364,7 +364,6 @@ class LevelBuddyPanel(bpy.types.Panel):
         col.label(icon="SNAP_PEEL_OBJECT", text="Level Tools")
         if bpy.context.mode == 'EDIT_MESH':
             col.operator("object.level_rip_sector", text="Rip Sector", icon="SURFACE_NCURVE").remove_geometry = True
-            col.operator("object.level_rip_sector", text="Duplicate Sector", icon="SURFACE_NCURVE").remove_geometry = False
         col.operator("scene.level_new_geometry", text="New 2D Sector", icon="SURFACE_NCURVE").s_type = 'SECTOR_2D'
         col.operator("scene.level_new_geometry", text="New 3D Sector", icon="SNAP_FACE").s_type = 'SECTOR_3D'
         col.operator("scene.level_new_geometry", text="New Brush Add", icon="SNAP_VOLUME").s_type = 'BRUSH_ADD'
