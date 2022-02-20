@@ -76,23 +76,23 @@ def auto_texture(bool_obj, source_obj):
                 for l in f.loops:
                     luv = l[uv_layer]
                     if faceDirection == "x":
-                        luv.uv.x = ((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_scale[1]
-                        luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_scale[1]
+                        luv.uv.x = ((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]
+                        luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
                     if faceDirection == "-x":
-                        luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_scale[1]) * -1
-                        luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_scale[1]
+                        luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * -1
+                        luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
                     if faceDirection == "y":
-                        luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_scale[1]) * -1
-                        luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_scale[1]
+                        luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * -1
+                        luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
                     if faceDirection == "-y":
-                        luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_scale[1]
-                        luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_scale[1]
+                        luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]
+                        luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
                     if faceDirection == "z":
-                        luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_scale[0]
-                        luv.uv.y = ((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_scale[0]
+                        luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[0] + source_obj.ceiling_texture_offset[0]
+                        luv.uv.y = ((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[0] + source_obj.ceiling_texture_offset[1]
                     if faceDirection == "-z":
-                        luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_scale[2]) * 1
-                        luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_scale[2]) * -1
+                        luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[2] + source_obj.floor_texture_offset[0]) * 1
+                        luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[2] + source_obj.floor_texture_offset[1]) * -1
                     luv.uv.x = luv.uv.x
                     luv.uv.y = luv.uv.y
     bm.to_mesh(mesh)
@@ -281,13 +281,40 @@ bpy.types.Scene.map_precision = bpy.props.IntProperty(
     max=6,
     description='Controls the rounding level of vertex precisions.  Lower numbers round to higher values.  A level of "1" would round 1.234 to 1.2 and a level of "2" would round to 1.23'
 )
-bpy.types.Object.texture_scale = bpy.props.FloatVectorProperty(
-    name="Texture Scale",
-    default=(1.0, 1.0, 1.0),
+bpy.types.Object.texture_tillings = bpy.props.FloatVectorProperty(
+    name="Texture Tillings",
+    default=(1, 1, 1),
     min=0,
     step=10,
     precision=1,
     update=update_sector
+)
+bpy.types.Object.ceiling_texture_offset = bpy.props.FloatVectorProperty(
+    name="Ceiling Texture Offset",
+    default=(0, 0),
+    min=0,
+    step=10,
+    precision=1,
+    update=update_sector,
+    size=2
+)
+bpy.types.Object.wall_texture_offset = bpy.props.FloatVectorProperty(
+    name="Wall Texture Offset",
+    default=(0, 0),
+    min=0,
+    step=10,
+    precision=1,
+    update=update_sector,
+    size=2
+)
+bpy.types.Object.floor_texture_offset = bpy.props.FloatVectorProperty(
+    name="Floor Texture Offset",
+    default=(0, 0),
+    min=0,
+    step=10,
+    precision=1,
+    update=update_sector,
+    size=2
 )
 bpy.types.Object.ceiling_height = bpy.props.FloatProperty(
     name="Ceiling Height",
@@ -364,11 +391,17 @@ class LevelBuddyPanel(bpy.types.Panel):
         # layout.separator()
         col = layout.column(align=True)
         if ob is not None and len(bpy.context.selected_objects) > 0:
-            col.label(icon="MOD_ARRAY", text="Sector Settings")
+            col.label(icon="MOD_ARRAY", text="Properties")
             col.prop(ob, "sector_type", text="Type")
             if ob.sector_type == 'SECTOR_2D' or ob.sector_type == 'SECTOR_3D':
                 col = layout.row(align=True)
-                col.prop(ob, "texture_scale")
+                col.prop(ob, "texture_tillings")
+                col = layout.row(align=True)
+                col.prop(ob, "ceiling_texture_offset")
+                col = layout.row(align=True)
+                col.prop(ob, "wall_texture_offset")
+                col = layout.row(align=True)
+                col.prop(ob, "floor_texture_offset")
             if ob.modifiers:
                 mod = ob.modifiers[0]
                 if mod.type == "SOLIDIFY":
@@ -377,7 +410,7 @@ class LevelBuddyPanel(bpy.types.Panel):
                     col.prop(ob, "floor_height")
                     # layout.separator()
                     col = layout.column(align=True)
-                    col.label(icon="MATERIAL", text="Sector Materials")
+                    col.label(icon="MATERIAL", text="Sector 2D Materials")
                     col.prop_search(ob, "ceiling_texture", bpy.data, "materials", icon="MATERIAL", text="Ceiling")
                     col.prop_search(ob, "wall_texture", bpy.data, "materials", icon="MATERIAL", text="Wall")
                     col.prop_search(ob, "floor_texture", bpy.data, "materials", icon="MATERIAL", text="Floor")
@@ -408,7 +441,10 @@ class LevelNewGeometry(bpy.types.Operator):
         bpy.context.object.hide_render = True
 
         if self.s_type == 'SECTOR_2D' or self.s_type == 'SECTOR_3D':
-            ob.texture_scale = (1.0, 1.0, 1.0)
+            ob.texture_tillings = (1.0, 1.0, 1.0)
+            ob.ceiling_texture_offset = (0.0, 0.0)
+            ob.wall_texture_offset = (0.0, 0.0)
+            ob.floor_texture_offset = (0.0, 0.0)
 
         if self.s_type == 'SECTOR_2D':
             bpy.ops.object.modifier_add(type='SOLIDIFY')
