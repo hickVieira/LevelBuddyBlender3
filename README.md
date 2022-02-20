@@ -26,10 +26,10 @@
 - Enable the addon
 - Make sure you delete/remove old versions
 
-## State of the Code
+<!-- ## State of the Code
 Overall the code is pretty bad all around, I have done my best to keep it bug free and readable. Honestly, this addon needs total rewrite, it's got to a point where it can no longer scale without causing bugs and pain.
 
-Also, no offense but, Python is a really ugly language, no matter what I do, the code is just ugly and hard to read. The Blender API doesn't help either, it's just a gigantic mess full of gotachas at every step you take... worst API I have touched so far.
+Also, no offense but, Python is a really ugly language, no matter what I do, the code is just ugly and hard to read. The Blender API doesn't help either, it's just a gigantic mess full of gotachas at every step you take... worst API I have touched so far. -->
 
 ## License
 This program is free software: you can redistribute it and/or modify

@@ -14,14 +14,6 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #  ***** END GPL LICENSE BLOCK *****
-#
-#
-#  ***** TODO *****
-#
-#   - clean up code
-#   - clean up panel UI
-#
-#  ***** END TODO *****
 
 
 import addon_utils
@@ -363,11 +355,12 @@ class LevelBuddyPanel(bpy.types.Panel):
         col = layout.column(align=True)
         col.label(icon="SNAP_PEEL_OBJECT", text="Level Tools")
         if bpy.context.mode == 'EDIT_MESH':
-            col.operator("object.level_rip_sector", text="Rip Sector", icon="SURFACE_NCURVE").remove_geometry = True
-        col.operator("scene.level_new_geometry", text="New 2D Sector", icon="SURFACE_NCURVE").s_type = 'SECTOR_2D'
-        col.operator("scene.level_new_geometry", text="New 3D Sector", icon="SNAP_FACE").s_type = 'SECTOR_3D'
-        col.operator("scene.level_new_geometry", text="New Brush Add", icon="SNAP_VOLUME").s_type = 'BRUSH_ADD'
-        col.operator("scene.level_new_geometry", text="New Brush Sub", icon="SNAP_VOLUME").s_type = 'BRUSH_SUB'
+            col.operator("object.level_rip_geometry", text="Rip Selected", icon="UNLINKED").remove_geometry = True
+        else:
+            col.operator("scene.level_new_geometry", text="New 2D Sector", icon="MESH_PLANE").s_type = 'SECTOR_2D'
+            col.operator("scene.level_new_geometry", text="New 3D Sector", icon="CUBE").s_type = 'SECTOR_3D'
+            col.operator("scene.level_new_geometry", text="New Brush Add", icon="SELECT_EXTEND").s_type = 'BRUSH_ADD'
+            col.operator("scene.level_new_geometry", text="New Brush Sub", icon="SELECT_SUBTRACT").s_type = 'BRUSH_SUB'
         # layout.separator()
         col = layout.column(align=True)
         if ob is not None and len(bpy.context.selected_objects) > 0:
@@ -400,7 +393,11 @@ class LevelNewGeometry(bpy.types.Operator):
         scn = bpy.context.scene
         bpy.ops.object.select_all(action='DESELECT')
 
-        bpy.ops.mesh.primitive_plane_add(size=1)
+        if self.s_type == 'SECTOR_2D':
+            bpy.ops.mesh.primitive_plane_add(size=1)
+        else:
+            bpy.ops.mesh.primitive_cube_add(size=1)
+
         ob = bpy.context.active_object
 
         ob.display_type = 'WIRE'
@@ -450,8 +447,8 @@ class LevelUpdateSector(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class LevelRipSector(bpy.types.Operator):
-    bl_idname = "object.level_rip_sector"
+class LevelRipGeometry(bpy.types.Operator):
+    bl_idname = "object.level_rip_geometry"
     bl_label = "Level Rip Sector"
 
     remove_geometry : bpy.props.BoolProperty(name="remove_geometry", default=False)
@@ -471,37 +468,65 @@ class LevelRipSector(bpy.types.Operator):
         selected_edges = [x for x in active_obj_bm.edges if x.select]
 
         py_verts = []
+        py_edges = []
         py_faces = []
 
-        for f in selected_faces:
-            cur_face_indices = []
+        # rip geometry
+        if len(selected_faces) > 0:
+            for f in selected_faces:
+                cur_face_indices = []
+                for v in f.verts:
+                    if v not in py_verts:
+                        py_verts.append(v)
+                    cur_face_indices.append(py_verts.index(v))
 
-            for v in f.verts:
-                if v not in py_verts:
-                    py_verts.append(v)
-
-                cur_face_indices.append(py_verts.index(v))
-
-            py_faces.append(cur_face_indices)
-
-            if self.remove_geometry:
-                active_obj_bm.faces.remove(f)
-        
-        if self.remove_geometry:
+                py_faces.append(cur_face_indices)
+        elif len(selected_edges) > 0:
             for e in selected_edges:
+                if e.verts[0] not in py_verts:
+                    py_verts.append(e.verts[0])
+                if e.verts[1] not in py_verts:
+                    py_verts.append(e.verts[1])
+                
+                vIndex0 = py_verts.index(e.verts[0])
+                vIndex1 = py_verts.index(e.verts[1])
+                
+                py_edges.append([vIndex0, vIndex1])
+        else:
+            # early out
+            riped_obj_bm.free()
+            return {"CANCELLED"}
+        # remove riped
+        if self.remove_geometry and len(selected_faces) > 0:
+            edges_to_remove = []
+            for f in selected_faces:
+                for e in f.edges:
+                    if e not in edges_to_remove:
+                        edges_to_remove.append(e)
+
+            for f in selected_faces:
+                active_obj_bm.faces.remove(f)
+                
+            for e in edges_to_remove:
                 if e.is_wire:
                     active_obj_bm.edges.remove(e)
-                
-        riped_mesh = bpy.data.meshes.new(name='riped_mesh')
 
+        active_obj_bm.verts.ensure_lookup_table()
+        active_obj_bm.edges.ensure_lookup_table()
+        active_obj_bm.faces.ensure_lookup_table()
+
+        # create mesh
+        riped_mesh = bpy.data.meshes.new(name='riped_mesh')
         mat = active_obj.matrix_world
-        riped_mesh.from_pydata([mat @ x.co for x in py_verts], [], py_faces)
+        if len(py_faces) > 0:
+            riped_mesh.from_pydata([mat @ x.co for x in py_verts], [], py_faces)
+        else:
+            riped_mesh.from_pydata([mat @ x.co for x in py_verts], py_edges, [])
 
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.select_all(action='DESELECT')
 
-        # riped_obj = bpy.data.objects.new(name='output', object_data = riped_mesh)
         riped_obj = active_obj.copy()
         riped_obj.data = riped_mesh
         copy_materials(riped_obj, active_obj)
@@ -513,7 +538,6 @@ class LevelRipSector(bpy.types.Operator):
 
         bpy.ops.mesh.select_all(action='SELECT')
 
-        active_obj_bm.free()
         riped_obj_bm.free()
 
         return {"FINISHED"}
@@ -629,7 +653,7 @@ def register():
     bpy.utils.register_class(LevelBuddyBuildMap)
     bpy.utils.register_class(LevelUpdateSector)
     bpy.utils.register_class(LevelNewGeometry)
-    bpy.utils.register_class(LevelRipSector)
+    bpy.utils.register_class(LevelRipGeometry)
     bpy.utils.register_class(LevelCleanupPrecision)
     bpy.utils.register_class(LevelEmptyTrash)
 
@@ -639,7 +663,7 @@ def unregister():
     bpy.utils.unregister_class(LevelBuddyBuildMap)
     bpy.utils.unregister_class(LevelUpdateSector)
     bpy.utils.unregister_class(LevelNewGeometry)
-    bpy.utils.unregister_class(LevelRipSector)
+    bpy.utils.unregister_class(LevelRipGeometry)
     bpy.utils.unregister_class(LevelCleanupPrecision)
     bpy.utils.unregister_class(LevelEmptyTrash)
 
