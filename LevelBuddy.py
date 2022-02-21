@@ -579,14 +579,16 @@ class LevelBuddyBuildMap(bpy.types.Operator):
         brush_orders_sorted_list.sort()
         bpy.context.view_layer.objects.active = level_map
 
+        name_index = 0
         for order in brush_orders_sorted_list:
             brush_list = brush_dictionary_list[order]
-            for i in range(0, len(brush_list)):
-                brush_list[i].name = "brush" + str(i)
-                bool_obj = build_bool_object(brush_list[i])
-                if brush_list[i].brush_auto_texture:
-                    auto_texture(bool_obj, brush_list[i])
-                apply_CSG(level_map, brush_list[i], bool_obj)
+            for brush in brush_list:
+                brush.name = "brush" + str(name_index)
+                name_index += 1
+                bool_obj = build_bool_object(brush)
+                if brush.brush_auto_texture:
+                    auto_texture(bool_obj, brush)
+                apply_CSG(level_map, brush, bool_obj)
 
         update_location_precision(level_map)
 
