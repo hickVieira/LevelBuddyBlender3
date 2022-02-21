@@ -112,10 +112,17 @@ def freeze_transforms(ob):
     bpy.ops.object.select_all(action='DESELECT')
 
 
+def _update_sector_solidify(self, context):
+    ob = context.active_object
+    if ob.modifiers:
+        mod = ob.modifiers[0]
+        mod.thickness = ob.ceiling_height - ob.floor_height
+        mod.offset = 1 + ob.floor_height / (mod.thickness / 2)
+
+
 def update_brush_sector_modifier(ob):
     bpy.ops.object.modifier_add(type='SOLIDIFY')
     mod = ob.modifiers[0]
-    mod.offset = 1
     mod.use_even_offset = True
     mod.use_quality_normals = True
     mod.use_even_offset = True
@@ -138,20 +145,6 @@ def update_brush_sector_materials(ob):
     if bpy.data.materials.find(ob.wall_texture) != -1:
         ob.material_slots[2].material = bpy.data.materials[ob.wall_texture]
 
-
-def _update_brush(self, context):
-    ob = bpy.context.active_object
-    if ob is not None:
-
-        while len(ob.modifiers) > 0:
-            ob.modifiers.remove(ob.modifiers[0])
-
-        if ob.brush_type == 'SECTOR':
-            update_brush_sector_modifier(ob)
-            update_brush_sector_materials(ob)
-        # else:
-
-        update_location_precision(ob)
 
 def update_brush(obj):
     bpy.context.view_layer.objects.active = obj
@@ -262,7 +255,6 @@ bpy.types.Object.texture_tillings = bpy.props.FloatVectorProperty(
     min=0,
     step=10,
     precision=1,
-    update=_update_brush
 )
 bpy.types.Object.ceiling_texture_offset = bpy.props.FloatVectorProperty(
     name="Ceiling Texture Offset",
@@ -270,7 +262,6 @@ bpy.types.Object.ceiling_texture_offset = bpy.props.FloatVectorProperty(
     min=0,
     step=10,
     precision=1,
-    update=_update_brush,
     size=2
 )
 bpy.types.Object.wall_texture_offset = bpy.props.FloatVectorProperty(
@@ -279,7 +270,6 @@ bpy.types.Object.wall_texture_offset = bpy.props.FloatVectorProperty(
     min=0,
     step=10,
     precision=1,
-    update=_update_brush,
     size=2
 )
 bpy.types.Object.floor_texture_offset = bpy.props.FloatVectorProperty(
@@ -288,7 +278,6 @@ bpy.types.Object.floor_texture_offset = bpy.props.FloatVectorProperty(
     min=0,
     step=10,
     precision=1,
-    update=_update_brush,
     size=2
 )
 bpy.types.Object.ceiling_height = bpy.props.FloatProperty(
@@ -296,26 +285,23 @@ bpy.types.Object.ceiling_height = bpy.props.FloatProperty(
     default=4,
     step=10,
     precision=1,
-    update=_update_brush
+    update=_update_sector_solidify
 )
 bpy.types.Object.floor_height = bpy.props.FloatProperty(
     name="Floor Height",
     default=0,
     step=10,
     precision=1,
-    update=_update_brush
+    update=_update_sector_solidify
 )
 bpy.types.Object.floor_texture = bpy.props.StringProperty(
     name="Floor Texture",
-    update=_update_brush
 )
 bpy.types.Object.wall_texture = bpy.props.StringProperty(
     name="Wall Texture",
-    update=_update_brush
 )
 bpy.types.Object.ceiling_texture = bpy.props.StringProperty(
     name="Ceiling Texture",
-    update=_update_brush
 )
 bpy.types.Object.brush_type = bpy.props.EnumProperty(
     items=[
@@ -390,7 +376,7 @@ class LevelBuddyPanel(bpy.types.Panel):
             col.prop(ob, "csg_order", text="CSG Order")
             col.prop(ob, "brush_auto_texture", text="Auto Texture")
             if ob.brush_auto_texture:
-                col = layout.row(align=True)
+                col = layout.column(align=True)
                 col.prop(ob, "texture_tillings")
                 col = layout.row(align=True)
                 col.prop(ob, "ceiling_texture_offset")
