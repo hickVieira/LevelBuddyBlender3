@@ -44,57 +44,54 @@ def auto_texture(bool_obj, source_obj):
 
     uv_layer = bm.loops.layers.uv.verify()
     for f in bm.faces:
-        matIndex = f.material_index
-        if len(source_obj.data.materials) > matIndex:
-            if source_obj.data.materials[matIndex] is not None:
-                nX = f.normal.x
-                nY = f.normal.y
-                nZ = f.normal.z
-                if nX < 0:
-                    nX = nX * -1
-                if nY < 0:
-                    nY = nY * -1
-                if nZ < 0:
-                    nZ = nZ * -1
-                faceNormalLargest = nX
-                faceDirection = "x"
-                if faceNormalLargest < nY:
-                    faceNormalLargest = nY
-                    faceDirection = "y"
-                if faceNormalLargest < nZ:
-                    faceNormalLargest = nZ
-                    faceDirection = "z"
-                if faceDirection == "x":
-                    if f.normal.x < 0:
-                        faceDirection = "-x"
-                if faceDirection == "y":
-                    if f.normal.y < 0:
-                        faceDirection = "-y"
-                if faceDirection == "z":
-                    if f.normal.z < 0:
-                        faceDirection = "-z"
-                for l in f.loops:
-                    luv = l[uv_layer]
-                    if faceDirection == "x":
-                        luv.uv.x = ((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]
-                        luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
-                    if faceDirection == "-x":
-                        luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * -1
-                        luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
-                    if faceDirection == "y":
-                        luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * -1
-                        luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
-                    if faceDirection == "-y":
-                        luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]
-                        luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
-                    if faceDirection == "z":
-                        luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[0] + source_obj.ceiling_texture_offset[0]
-                        luv.uv.y = ((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[0] + source_obj.ceiling_texture_offset[1]
-                    if faceDirection == "-z":
-                        luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[2] + source_obj.floor_texture_offset[0]) * 1
-                        luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[2] + source_obj.floor_texture_offset[1]) * -1
-                    luv.uv.x = luv.uv.x
-                    luv.uv.y = luv.uv.y
+        nX = f.normal.x
+        nY = f.normal.y
+        nZ = f.normal.z
+        if nX < 0:
+            nX = nX * -1
+        if nY < 0:
+            nY = nY * -1
+        if nZ < 0:
+            nZ = nZ * -1
+        faceNormalLargest = nX
+        faceDirection = "x"
+        if faceNormalLargest < nY:
+            faceNormalLargest = nY
+            faceDirection = "y"
+        if faceNormalLargest < nZ:
+            faceNormalLargest = nZ
+            faceDirection = "z"
+        if faceDirection == "x":
+            if f.normal.x < 0:
+                faceDirection = "-x"
+        if faceDirection == "y":
+            if f.normal.y < 0:
+                faceDirection = "-y"
+        if faceDirection == "z":
+            if f.normal.z < 0:
+                faceDirection = "-z"
+        for l in f.loops:
+            luv = l[uv_layer]
+            if faceDirection == "x":
+                luv.uv.x = ((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]
+                luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
+            if faceDirection == "-x":
+                luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * -1
+                luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
+            if faceDirection == "y":
+                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * -1
+                luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
+            if faceDirection == "-y":
+                luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]
+                luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
+            if faceDirection == "z":
+                luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[0] + source_obj.ceiling_texture_offset[0]
+                luv.uv.y = ((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[0] + source_obj.ceiling_texture_offset[1]
+            if faceDirection == "-z":
+                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[2] + source_obj.floor_texture_offset[0]) * 1
+                luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[2] + source_obj.floor_texture_offset[1]) * -1
+            luv.uv.x = luv.uv.x
+            luv.uv.y = luv.uv.y
     bm.to_mesh(mesh)
     bm.free()
 
