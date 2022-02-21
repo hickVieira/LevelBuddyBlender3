@@ -98,48 +98,6 @@ def auto_texture(bool_obj, source_obj):
     bool_obj.data = mesh
 
 
-def duplicate_material_check(ob):
-    m_index = 0
-    for m in ob.material_slots:
-        if m is not None:
-            n_index = 0
-            for n in ob.material_slots:
-                if m.name == n.name and m_index < n_index:
-                    ob.active_material_index = n_index
-                    bpy.ops.object.mode_set(mode='EDIT')
-                    bpy.ops.mesh.select_all(action='DESELECT')
-                    bpy.ops.object.material_slot_select()
-                    ob.active_material_index = m_index
-                    bpy.ops.object.material_slot_assign()
-                    bpy.ops.object.mode_set(mode='OBJECT')
-                    ob.active_material_index = n_index
-                    bpy.ops.object.material_slot_remove()
-                    ob.active_material_index = m_index
-                    duplicate_material_check(ob)
-                n_index += 1
-            m_index += 1
-
-
-def apply_remove_material(ob):
-    scn = bpy.context.scene
-    if scn.remove_texture != "":
-        i = 0
-        remove = False
-        for m in ob.material_slots:
-            if scn.remove_texture == m.name:
-                remove = True
-            else:
-                if not remove:
-                    i += 1
-        ob.active_material_index = i
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.material_slot_select()
-        bpy.ops.mesh.delete(type='FACE')
-        bpy.ops.object.mode_set(mode='OBJECT')
-        bpy.ops.object.material_slot_remove()
-
-
 def update_location_precision(ob):
     ob.location.x = round(ob.location.x, 1)
     ob.location.y = round(ob.location.y, 1)
@@ -223,14 +181,15 @@ def cleanup_vertex_precision(ob):
             v.co.z = round(v.co.z, p)
 
 
-def apply_boolean(target, source_obj, bool_obj, bool_op):
+def apply_CSG(target, source_obj, bool_obj):
     bpy.ops.object.select_all(action='DESELECT')
     target.select_set(True)
 
     copy_materials(target, source_obj)
+
     mod = target.modifiers.new(name=source_obj.name, type='BOOLEAN')
     mod.object = bool_obj
-    mod.operation = bool_op
+    mod.operation = csg_operation_to_blender_boolean[source_obj.csg_operation]
     mod.solver = 'EXACT'
     bpy.ops.object.modifier_apply(modifier=source_obj.name)
 
@@ -279,14 +238,9 @@ def create_new_boolean_object(scn, name):
 
 
 def copy_materials(target, source):
-    for m in source.data.materials:
-        has_material = False
-        for mat in target.data.materials:
-            if mat is not None and m is not None:
-                if mat.name == m.name:
-                    has_material = True
-        if not has_material:
-            target.data.materials.append(m)
+    for sourceMaterial in source.data.materials:
+        if sourceMaterial.name not in target.data.materials:
+            target.data.materials.append(sourceMaterial)
 
 
 def copy_transforms(a, b):
@@ -350,10 +304,6 @@ bpy.types.Object.floor_height = bpy.props.FloatProperty(
     step=10,
     precision=1,
     update=_update_brush
-)
-bpy.types.Scene.remove_texture = bpy.props.StringProperty(
-    name="Remove Material",
-    description="when the map is built all faces with this material will be removed."
 )
 bpy.types.Object.floor_texture = bpy.props.StringProperty(
     name="Floor Texture",
@@ -419,7 +369,6 @@ class LevelBuddyPanel(bpy.types.Panel):
         layout = self.layout
         col = layout.column(align=True)
         col.label(icon="WORLD", text="Map Settings")
-        col.prop_search(scn, "remove_texture", bpy.data, "materials", icon="MATERIAL")
         col.prop(scn, "map_precision")
         col.prop(scn, "flip_normals")
         col = layout.column(align=True)
@@ -651,11 +600,9 @@ class LevelBuddyBuildMap(bpy.types.Operator):
                 bool_obj = build_bool_object(brush_list[i])
                 if brush_list[i].brush_auto_texture:
                     auto_texture(bool_obj, brush_list[i])
-                apply_boolean(level_map, brush_list[i], bool_obj, csg_operation_to_blender_boolean[brush_list[i].csg_operation])
+                apply_CSG(level_map, brush_list[i], bool_obj)
 
         update_location_precision(level_map)
-        duplicate_material_check(level_map)
-        apply_remove_material(level_map)
 
         if bpy.context.scene.flip_normals:
             flip_object_normals(level_map)
