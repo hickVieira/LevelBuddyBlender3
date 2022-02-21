@@ -254,14 +254,14 @@ bpy.types.Object.texture_tillings = bpy.props.FloatVectorProperty(
     default=(1, 1, 1),
     min=0,
     step=10,
-    precision=1,
+    precision=3,
 )
 bpy.types.Object.ceiling_texture_offset = bpy.props.FloatVectorProperty(
     name="Ceiling Texture Offset",
     default=(0, 0),
     min=0,
     step=10,
-    precision=1,
+    precision=3,
     size=2
 )
 bpy.types.Object.wall_texture_offset = bpy.props.FloatVectorProperty(
@@ -269,7 +269,7 @@ bpy.types.Object.wall_texture_offset = bpy.props.FloatVectorProperty(
     default=(0, 0),
     min=0,
     step=10,
-    precision=1,
+    precision=3,
     size=2
 )
 bpy.types.Object.floor_texture_offset = bpy.props.FloatVectorProperty(
@@ -277,21 +277,21 @@ bpy.types.Object.floor_texture_offset = bpy.props.FloatVectorProperty(
     default=(0, 0),
     min=0,
     step=10,
-    precision=1,
+    precision=3,
     size=2
 )
 bpy.types.Object.ceiling_height = bpy.props.FloatProperty(
     name="Ceiling Height",
     default=4,
     step=10,
-    precision=1,
+    precision=3,
     update=_update_sector_solidify
 )
 bpy.types.Object.floor_height = bpy.props.FloatProperty(
     name="Floor Height",
     default=0,
     step=10,
-    precision=1,
+    precision=3,
     update=_update_sector_solidify
 )
 bpy.types.Object.floor_texture = bpy.props.StringProperty(
