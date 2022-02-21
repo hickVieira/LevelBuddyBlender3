@@ -98,8 +98,7 @@ def auto_texture(bool_obj, source_obj):
     bool_obj.data = mesh
 
 
-def map_duplicate_material_check():
-    ob = bpy.context.object
+def duplicate_material_check(ob):
     m_index = 0
     for m in ob.material_slots:
         if m is not None:
@@ -116,13 +115,12 @@ def map_duplicate_material_check():
                     ob.active_material_index = n_index
                     bpy.ops.object.material_slot_remove()
                     ob.active_material_index = m_index
-                    map_duplicate_material_check()
+                    duplicate_material_check(ob)
                 n_index += 1
             m_index += 1
 
 
-def map_remove_material():
-    ob = bpy.context.object
+def apply_remove_material(ob):
     scn = bpy.context.scene
     if scn.remove_texture != "":
         i = 0
@@ -156,18 +154,25 @@ def freeze_transforms(ob):
     bpy.ops.object.select_all(action='DESELECT')
 
 
-def update_sector_plane_modifier(ob):
-    if ob.modifiers:
-        mod = ob.modifiers[0]
-        if mod.type == "SOLIDIFY":
-            mod.use_even_offset = True
-            mod.thickness = ob.ceiling_height - ob.floor_height
-            mod.offset = 1 + ob.floor_height / (mod.thickness / 2)
-            mod.material_offset = 1
-            mod.material_offset_rim = 2
+def update_brush_sector_modifier(ob):
+    bpy.ops.object.modifier_add(type='SOLIDIFY')
+    mod = ob.modifiers[0]
+    mod.offset = 1
+    mod.use_even_offset = True
+    mod.use_quality_normals = True
+    mod.use_even_offset = True
+    mod.thickness = ob.ceiling_height - ob.floor_height
+    mod.offset = 1 + ob.floor_height / (mod.thickness / 2)
+    mod.material_offset = 1
+    mod.material_offset_rim = 2
 
 
-def update_sector_plane_materials(ob):
+def update_brush_sector_materials(ob):
+    while len(ob.material_slots) < 3:
+        bpy.ops.object.material_slot_add()
+    while len(ob.material_slots) > 3:
+        bpy.ops.object.material_slot_remove()
+
     if bpy.data.materials.find(ob.ceiling_texture) != -1:
         ob.material_slots[0].material = bpy.data.materials[ob.ceiling_texture]
     if bpy.data.materials.find(ob.floor_texture) != -1:
@@ -176,19 +181,38 @@ def update_sector_plane_materials(ob):
         ob.material_slots[2].material = bpy.data.materials[ob.wall_texture]
 
 
-def update_sector(self, context):
+def _update_brush(self, context):
     ob = bpy.context.active_object
     if ob is not None:
-        if ob.sector_type == 'SECTOR_2D':
-            update_sector_plane_modifier(ob)
-            update_sector_plane_materials(ob)
+
+        while len(ob.modifiers) > 0:
+            ob.modifiers.remove(ob.modifiers[0])
+
+        if ob.brush_type == 'SECTOR':
+            update_brush_sector_modifier(ob)
+            update_brush_sector_materials(ob)
+        # else:
+
         update_location_precision(ob)
-        bpy.ops.scene.level_buddy_build_map()
+
+def update_brush(obj):
+    bpy.context.view_layer.objects.active = obj
+    if obj is not None:
+
+        while len(obj.modifiers) > 0:
+            obj.modifiers.remove(obj.modifiers[0])
+
+        if obj.brush_type == 'SECTOR':
+            update_brush_sector_modifier(obj)
+            update_brush_sector_materials(obj)
+        # else:
+
+        update_location_precision(obj)
 
 
 def cleanup_vertex_precision(ob):
     p = bpy.context.scene.map_precision
-    if ob.type == 'SECTOR_3D':
+    if ob.type == 'BRUSH':
         for v in ob.data.vertices:
             if ob.modifiers:
                 mod = ob.modifiers[0]
@@ -284,7 +308,7 @@ bpy.types.Object.texture_tillings = bpy.props.FloatVectorProperty(
     min=0,
     step=10,
     precision=1,
-    update=update_sector
+    update=_update_brush
 )
 bpy.types.Object.ceiling_texture_offset = bpy.props.FloatVectorProperty(
     name="Ceiling Texture Offset",
@@ -292,7 +316,7 @@ bpy.types.Object.ceiling_texture_offset = bpy.props.FloatVectorProperty(
     min=0,
     step=10,
     precision=1,
-    update=update_sector,
+    update=_update_brush,
     size=2
 )
 bpy.types.Object.wall_texture_offset = bpy.props.FloatVectorProperty(
@@ -301,7 +325,7 @@ bpy.types.Object.wall_texture_offset = bpy.props.FloatVectorProperty(
     min=0,
     step=10,
     precision=1,
-    update=update_sector,
+    update=_update_brush,
     size=2
 )
 bpy.types.Object.floor_texture_offset = bpy.props.FloatVectorProperty(
@@ -310,7 +334,7 @@ bpy.types.Object.floor_texture_offset = bpy.props.FloatVectorProperty(
     min=0,
     step=10,
     precision=1,
-    update=update_sector,
+    update=_update_brush,
     size=2
 )
 bpy.types.Object.ceiling_height = bpy.props.FloatProperty(
@@ -318,14 +342,14 @@ bpy.types.Object.ceiling_height = bpy.props.FloatProperty(
     default=4,
     step=10,
     precision=1,
-    update=update_sector
+    update=_update_brush
 )
 bpy.types.Object.floor_height = bpy.props.FloatProperty(
     name="Floor Height",
     default=0,
     step=10,
     precision=1,
-    update=update_sector
+    update=_update_brush
 )
 bpy.types.Scene.remove_texture = bpy.props.StringProperty(
     name="Remove Material",
@@ -333,27 +357,53 @@ bpy.types.Scene.remove_texture = bpy.props.StringProperty(
 )
 bpy.types.Object.floor_texture = bpy.props.StringProperty(
     name="Floor Texture",
-    update=update_sector
+    update=_update_brush
 )
 bpy.types.Object.wall_texture = bpy.props.StringProperty(
     name="Wall Texture",
-    update=update_sector
+    update=_update_brush
 )
 bpy.types.Object.ceiling_texture = bpy.props.StringProperty(
     name="Ceiling Texture",
-    update=update_sector
+    update=_update_brush
 )
-bpy.types.Object.sector_type = bpy.props.EnumProperty(
+bpy.types.Object.brush_type = bpy.props.EnumProperty(
     items=[
-        ("SECTOR_2D", "2D Sector", "is a 2d sector plane"),
-        ("SECTOR_3D", "3D Sector", "is a 3d sector mesh"),
-        ("BRUSH_ADD", "Brush Add", "is a 3d brush volume"),
-        ("BRUSH_SUB", "Brush Subtract", "is a 3d brush volume"),
+        ("BRUSH", "Brush", "is a brush"),
+        ("SECTOR", "Sector", "is a sector"),
         ("NONE", "None", "none"),
     ],
-    name="Sector Type",
-    description="the sector type",
+    name="Brush Type",
+    description="the brush type",
     default='NONE'
+)
+bpy.types.Object.csg_operation = bpy.props.EnumProperty(
+    items=[
+        ("ADD", "Add", "add/union geometry to output"),
+        ("SUBTRACT", "Subtract", "subtract/remove geometry from output"),
+    ],
+    name="CSG Operation",
+    description="the CSG operation",
+    default='ADD'
+)
+csg_operation_to_blender_boolean = {
+    "ADD" : "UNION",
+    "SUBTRACT" : "DIFFERENCE"
+}
+bpy.types.Object.csg_order = bpy.props.IntProperty(
+    name="CSG Order",
+    default=0,
+    description='Controls the order of CSG operation of the object'
+)
+bpy.types.Object.brush_auto_texture = bpy.props.BoolProperty(
+    name="Brush Auto Texture",
+    default=True,
+    description='Auto Texture on or off'
+)
+bpy.types.Scene.flip_normals = bpy.props.BoolProperty(
+    name="Flip Normals",
+    default=True,
+    description='Flip output normals'
 )
 
 
@@ -371,26 +421,26 @@ class LevelBuddyPanel(bpy.types.Panel):
         col.label(icon="WORLD", text="Map Settings")
         col.prop_search(scn, "remove_texture", bpy.data, "materials", icon="MATERIAL")
         col.prop(scn, "map_precision")
+        col.prop(scn, "flip_normals")
         col = layout.column(align=True)
         col.operator("scene.level_buddy_build_map", text="Build Map", icon="MOD_BUILD").bool_op = "UNION"
-        col.operator("scene.level_buddy_cleanup", icon="ERROR")
-        col.operator("scene.level_buddy_empty_trash", icon="ERROR")
         # layout.separator()
         col = layout.column(align=True)
-        col.label(icon="SNAP_PEEL_OBJECT", text="Level Tools")
+        col.label(icon="SNAP_PEEL_OBJECT", text="Tools")
         if bpy.context.mode == 'EDIT_MESH':
-            col.operator("object.level_rip_geometry", text="Rip Selected", icon="UNLINKED").remove_geometry = True
+            col.operator("object.level_rip_geometry", text="Rip", icon="UNLINKED").remove_geometry = True
         else:
-            col.operator("scene.level_new_geometry", text="New 2D Sector", icon="MESH_PLANE").s_type = 'SECTOR_2D'
-            col.operator("scene.level_new_geometry", text="New 3D Sector", icon="CUBE").s_type = 'SECTOR_3D'
-            col.operator("scene.level_new_geometry", text="New Brush Add", icon="SELECT_EXTEND").s_type = 'BRUSH_ADD'
-            col.operator("scene.level_new_geometry", text="New Brush Sub", icon="SELECT_SUBTRACT").s_type = 'BRUSH_SUB'
+            col.operator("scene.level_new_geometry", text="New Sector", icon="MESH_PLANE").brush_type = 'SECTOR'
+            col.operator("scene.level_new_geometry", text="New Brush", icon="CUBE").brush_type = 'BRUSH'
         # layout.separator()
         col = layout.column(align=True)
         if ob is not None and len(bpy.context.selected_objects) > 0:
-            col.label(icon="MOD_ARRAY", text="Properties")
-            col.prop(ob, "sector_type", text="Type")
-            if ob.sector_type == 'SECTOR_2D' or ob.sector_type == 'SECTOR_3D':
+            col.label(icon="MOD_ARRAY", text="Brush Properties")
+            col.prop(ob, "brush_type", text="Brush Type")
+            col.prop(ob, "csg_operation", text="CSG Op")
+            col.prop(ob, "csg_order", text="CSG Order")
+            col.prop(ob, "brush_auto_texture", text="Auto Texture")
+            if ob.brush_auto_texture:
                 col = layout.row(align=True)
                 col.prop(ob, "texture_tillings")
                 col = layout.row(align=True)
@@ -399,84 +449,60 @@ class LevelBuddyPanel(bpy.types.Panel):
                 col.prop(ob, "wall_texture_offset")
                 col = layout.row(align=True)
                 col.prop(ob, "floor_texture_offset")
-            if ob.modifiers:
-                mod = ob.modifiers[0]
-                if mod.type == "SOLIDIFY":
-                    col = layout.column(align=True)
-                    col.prop(ob, "ceiling_height")
-                    col.prop(ob, "floor_height")
-                    # layout.separator()
-                    col = layout.column(align=True)
-                    col.label(icon="MATERIAL", text="Sector 2D Materials")
-                    col.prop_search(ob, "ceiling_texture", bpy.data, "materials", icon="MATERIAL", text="Ceiling")
-                    col.prop_search(ob, "wall_texture", bpy.data, "materials", icon="MATERIAL", text="Wall")
-                    col.prop_search(ob, "floor_texture", bpy.data, "materials", icon="MATERIAL", text="Floor")
+            if ob.brush_type == 'SECTOR' and ob.modifiers:
+                col = layout.column(align=True)
+                col.prop(ob, "ceiling_height")
+                col.prop(ob, "floor_height")
+                # layout.separator()
+                col = layout.column(align=True)
+                col.prop_search(ob, "ceiling_texture", bpy.data, "materials", icon="MATERIAL", text="Ceiling")
+                col.prop_search(ob, "wall_texture", bpy.data, "materials", icon="MATERIAL", text="Wall")
+                col.prop_search(ob, "floor_texture", bpy.data, "materials", icon="MATERIAL", text="Floor")
 
 
 class LevelNewGeometry(bpy.types.Operator):
     bl_idname = "scene.level_new_geometry"
     bl_label = "Level New Geometry"
 
-    s_type : bpy.props.StringProperty(name="s_type", default='NONE')
+    brush_type : bpy.props.StringProperty(name="brush_type", default='NONE')
 
     def execute(self, context):
         scn = bpy.context.scene
         bpy.ops.object.select_all(action='DESELECT')
 
-        if self.s_type == 'SECTOR_2D':
+        if self.brush_type == 'SECTOR':
             bpy.ops.mesh.primitive_plane_add(size=1)
         else:
             bpy.ops.mesh.primitive_cube_add(size=1)
 
         ob = bpy.context.active_object
 
+        if self.brush_type == 'SECTOR':
+            ob.csg_operation = 'SUBTRACT'
+        else:
+            ob.csg_operation = 'ADD'
+
         ob.display_type = 'WIRE'
-        ob.name = self.s_type
-        ob.data.name = self.s_type
-        ob.sector_type = self.s_type
+        ob.name = self.brush_type
+        ob.data.name = self.brush_type
+        ob.brush_type = self.brush_type
+        ob.csg_order = 0
+        ob.brush_auto_texture = True
         bpy.context.view_layer.objects.active = ob
         bpy.context.object.hide_render = True
 
-        if self.s_type == 'SECTOR_2D' or self.s_type == 'SECTOR_3D':
-            ob.texture_tillings = (1.0, 1.0, 1.0)
-            ob.ceiling_texture_offset = (0.0, 0.0)
-            ob.wall_texture_offset = (0.0, 0.0)
-            ob.floor_texture_offset = (0.0, 0.0)
+        ob.ceiling_height = 4
+        ob.floor_height = 0
+        ob.texture_tillings = (1.0, 1.0, 1.0)
+        ob.ceiling_texture_offset = (0.0, 0.0)
+        ob.wall_texture_offset = (0.0, 0.0)
+        ob.floor_texture_offset = (0.0, 0.0)
+        ob.ceiling_texture = ""
+        ob.wall_texture = ""
+        ob.floor_texture = ""
 
-        if self.s_type == 'SECTOR_2D':
-            bpy.ops.object.modifier_add(type='SOLIDIFY')
-            bpy.context.object.modifiers["Solidify"].offset = 1
-            bpy.context.object.modifiers["Solidify"].use_even_offset = True
-            bpy.context.object.modifiers["Solidify"].use_quality_normals = True
-            ob.ceiling_height = 4
-            ob.floor_height = 0
-            if len(bpy.data.materials) > 0:
-                ob.data.materials.append(bpy.data.materials[0])
-                ob.data.materials.append(bpy.data.materials[0])
-                ob.data.materials.append(bpy.data.materials[0])
-                ob.ceiling_texture = bpy.data.materials[0].name
-                ob.wall_texture = bpy.data.materials[0].name
-                ob.floor_texture = bpy.data.materials[0].name
-            else:
-                bpy.ops.object.material_slot_add()
-                bpy.ops.object.material_slot_add()
-                bpy.ops.object.material_slot_add()
-                ob.ceiling_texture = ""
-                ob.wall_texture = ""
-                ob.floor_texture = ""
-            bpy.ops.object.level_update_sector()
+        update_brush(ob)
 
-        return {"FINISHED"}
-
-
-class LevelUpdateSector(bpy.types.Operator):
-    bl_idname = "object.level_update_sector"
-    bl_label = "Level Update Sector"
-
-    def execute(self, context):
-        selected_objects = bpy.context.selected_objects
-        for ob in selected_objects:
-            update_sector_plane_modifier(ob)
         return {"FINISHED"}
 
 
@@ -529,6 +555,7 @@ class LevelRipGeometry(bpy.types.Operator):
             # early out
             riped_obj_bm.free()
             return {"CANCELLED"}
+
         # remove riped
         if self.remove_geometry and len(selected_faces) > 0:
             edges_to_remove = []
@@ -576,37 +603,9 @@ class LevelRipGeometry(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class LevelCleanupPrecision(bpy.types.Operator):
-    bl_idname = "scene.level_buddy_cleanup"
-    bl_label = "Level Cleanup Precision"
-
-    def execute(self, context):
-        selected_objects = bpy.context.selected_objects
-        for ob in selected_objects:
-            update_location_precision(ob)
-        return {"FINISHED"}
-
-
-class LevelEmptyTrash(bpy.types.Operator):
-    bl_idname = "scene.level_buddy_empty_trash"
-    bl_label = "Level Empty Trash"
-
-    def execute(self, context):
-        for o in bpy.data.objects:
-            if o.users == 0:
-                bpy.data.objects.remove(o)
-        for m in bpy.data.meshes:
-            if m.users == 0:
-                bpy.data.meshes.remove(m)
-        for m in bpy.data.materials:
-            if m.users == 0:
-                bpy.data.materials.remove(m)
-        return {"FINISHED"}
-
-
 class LevelBuddyBuildMap(bpy.types.Operator):
     bl_idname = "scene.level_buddy_build_map"
-    bl_label = "Level Buddy Build Map"
+    bl_label = "Build Map"
 
     bool_op: bpy.props.StringProperty(
         name="bool_op",
@@ -623,52 +622,43 @@ class LevelBuddyBuildMap(bpy.types.Operator):
             bpy.ops.object.mode_set(mode='OBJECT')
             edit_mode = True
 
-        sector_list = []
-        brushAdd_list = []
-        brushSub_list = []
+        brush_dictionary_list = {}
+        brush_orders_sorted_list = []
 
         level_map = create_new_boolean_object(scn, "LevelGeometry")
         level_map.data = bpy.data.meshes.new("LevelGeometryMesh")
 
         visible_objects = bpy.context.scene.collection.all_objects
         for ob in visible_objects:
-            if ob != level_map and ob.sector_type != 'NONE':
-                if ob.sector_type == 'SECTOR_2D' or ob.sector_type == 'SECTOR_3D':
-                    sector_list.append(ob)
-                    freeze_transforms(ob)
-                if ob.sector_type == 'BRUSH_ADD':
-                    brushAdd_list.append(ob)
-                    update_location_precision(ob)
-                if ob.sector_type == 'BRUSH_SUB':
-                    brushSub_list.append(ob)
-                    update_location_precision(ob)
+            if ob != level_map and ob.brush_type != 'NONE':
+                update_brush(ob)
+                
+                if brush_dictionary_list.get(ob.csg_order, None) == None:
+                    brush_dictionary_list[ob.csg_order] = []
+                
+                if ob.csg_order not in brush_orders_sorted_list:
+                    brush_orders_sorted_list.append(ob.csg_order)
 
+                brush_dictionary_list[ob.csg_order].append(ob)
+
+        brush_orders_sorted_list.sort()
         bpy.context.view_layer.objects.active = level_map
 
-        for i in range(0, len(sector_list)):
-            sector_list[i].name = "sector" + str(i)
-            bool_obj = build_bool_object(sector_list[i])
-            auto_texture(bool_obj, sector_list[i])
-            apply_boolean(level_map, sector_list[i], bool_obj, 'UNION')
+        for order in brush_orders_sorted_list:
+            brush_list = brush_dictionary_list[order]
+            for i in range(0, len(brush_list)):
+                brush_list[i].name = "brush" + str(i)
+                bool_obj = build_bool_object(brush_list[i])
+                if brush_list[i].brush_auto_texture:
+                    auto_texture(bool_obj, brush_list[i])
+                apply_boolean(level_map, brush_list[i], bool_obj, csg_operation_to_blender_boolean[brush_list[i].csg_operation])
 
-        for i in range(0, len(brushAdd_list)):
-            brushAdd_list[i].name = "brush_add" + str(i)
-            bool_obj = build_bool_object(brushAdd_list[i])
-            auto_texture(bool_obj, brushAdd_list[i])
-            apply_boolean(level_map, brushAdd_list[i], bool_obj, 'DIFFERENCE')
-            update_location_precision(level_map)
+        update_location_precision(level_map)
+        duplicate_material_check(level_map)
+        apply_remove_material(level_map)
 
-        for i in range(0, len(brushSub_list)):
-            brushSub_list[i].name = "brush_sub" + str(i)
-            bool_obj = build_bool_object(brushSub_list[i])
-            auto_texture(bool_obj, brushSub_list[i])
-            apply_boolean(level_map, brushSub_list[i], bool_obj, 'UNION')
-            update_location_precision(level_map)
-
-        flip_object_normals(level_map)
-
-        map_duplicate_material_check()
-        map_remove_material()
+        if bpy.context.scene.flip_normals:
+            flip_object_normals(level_map)
 
         level_map.hide_set(False)
         bpy.ops.object.select_all(action='DESELECT')
@@ -677,6 +667,17 @@ class LevelBuddyBuildMap(bpy.types.Operator):
             bpy.context.view_layer.objects.active = oldActiveObj
         if edit_mode:
             bpy.ops.object.mode_set(mode='EDIT')
+        
+        # remove trash
+        for o in bpy.data.objects:
+            if o.users == 0:
+                bpy.data.objects.remove(o)
+        for m in bpy.data.meshes:
+            if m.users == 0:
+                bpy.data.meshes.remove(m)
+        # for m in bpy.data.materials:
+        #     if m.users == 0:
+        #         bpy.data.materials.remove(m)
 
         return {"FINISHED"}
 
@@ -684,21 +685,15 @@ class LevelBuddyBuildMap(bpy.types.Operator):
 def register():
     bpy.utils.register_class(LevelBuddyPanel)
     bpy.utils.register_class(LevelBuddyBuildMap)
-    bpy.utils.register_class(LevelUpdateSector)
     bpy.utils.register_class(LevelNewGeometry)
     bpy.utils.register_class(LevelRipGeometry)
-    bpy.utils.register_class(LevelCleanupPrecision)
-    bpy.utils.register_class(LevelEmptyTrash)
 
 
 def unregister():
     bpy.utils.unregister_class(LevelBuddyPanel)
     bpy.utils.unregister_class(LevelBuddyBuildMap)
-    bpy.utils.unregister_class(LevelUpdateSector)
     bpy.utils.unregister_class(LevelNewGeometry)
     bpy.utils.unregister_class(LevelRipGeometry)
-    bpy.utils.unregister_class(LevelCleanupPrecision)
-    bpy.utils.unregister_class(LevelEmptyTrash)
 
 
 if __name__ == "__main__":
