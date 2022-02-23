@@ -4,34 +4,26 @@
 
 [old version available on itch.io](https://matt-lucas.itch.io/level-buddy).
 
+![gify](gif.gif)
+
 ## Features
 - Doom-inspired sector-based level editor
-- Brushes (Add and Subtract CSG operations)
+- Brushes (Add and Subtract CSG operations with order support)
 - Sectors can have up to 3 materials: floor + wall + ceiling
 - Support for Auto and Manual UV
 
-## Known Issues
-- It crashes often, make sure to save work at all times
-- Some times materials do not bind for some reason. I am looking into it
-
 ## Notes
-- TextureBuddy no longer exists (got merged to main file)
+- It crashes often, make sure to save work at all times
+- TextureBuddy no longer exists (got merged to main code)
 - Addon still has some bugs
 - Yes I removed some old features
-- But I also added some better features
-- Haven't tested everything out yet
-- Give feedback and bug reports
+- But I also added some better features that suits fast level design
 
 ## Installing
 - Download repo and unzip
 - Blender -> Edit -> Preferences -> Addons -> Install -> Select LevelBuddy.py
 - Enable the addon
 - Make sure you delete/remove old versions
-
-<!-- ## State of the Code
-Overall the code is pretty bad all around, I have done my best to keep it bug free and readable. Honestly, this addon needs total rewrite, it's got to a point where it can no longer scale without causing bugs and pain.
-
-Also, no offense but, Python is a really ugly language, no matter what I do, the code is just ugly and hard to read. The Blender API doesn't help either, it's just a gigantic mess full of gotachas at every step you take... worst API I have touched so far. -->
 
 ## License
 This program is free software: you can redistribute it and/or modify

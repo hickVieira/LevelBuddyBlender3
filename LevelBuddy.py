@@ -16,20 +16,21 @@
 #  ***** END GPL LICENSE BLOCK *****
 
 
-import addon_utils
+import os
 import bpy
 import bmesh
+import addon_utils
+from bpy_extras.io_utils import ImportHelper
 
 bl_info = {
     "name": "Level Buddy",
-    "author": "Matt Lucas + HickVieira (3.0 port)",
-    "version": (1, 3),
+    "author": "Matt Lucas, HickVieira (Blender 3.0 version)",
+    "version": (1, 5),
     "blender": (3, 0, 0),
-    "location": "View3D > Tools",
+    "location": "View3D > Tools > Level Buddy",
     "description": "A set of workflow tools based on concepts from Doom and Unreal level mapping.",
-    "warning": "still under development and lacks documentation.",
-    "wiki_url": "https://matt-lucas.itch.io/level-buddy",
-    "tracker_url": "",
+    "warning": "WIP",
+    "wiki_url": "https://github.com/hickVieira/LevelBuddyBlender3",
     "category": "Object",
 }
 
@@ -73,23 +74,23 @@ def auto_texture(bool_obj, source_obj):
         for l in f.loops:
             luv = l[uv_layer]
             if faceDirection == "x":
-                luv.uv.x = ((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]
-                luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
+                luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * 0.5
+                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]) * 0.5
             if faceDirection == "-x":
-                luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * -1
-                luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
+                luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * -0.5
+                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]) * 0.5
             if faceDirection == "y":
-                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * -1
-                luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
+                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * -0.5
+                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]) * 0.5
             if faceDirection == "-y":
-                luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]
-                luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]
+                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * 0.5
+                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]) * 0.5
             if faceDirection == "z":
-                luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[0] + source_obj.ceiling_texture_offset[0]
-                luv.uv.y = ((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[0] + source_obj.ceiling_texture_offset[1]
+                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[0] + source_obj.ceiling_texture_offset[0]) * 0.5
+                luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[0] + source_obj.ceiling_texture_offset[1]) * 0.5
             if faceDirection == "-z":
-                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[2] + source_obj.floor_texture_offset[0]) * 1
-                luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[2] + source_obj.floor_texture_offset[1]) * -1
+                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[2] + source_obj.floor_texture_offset[0]) * 0.5
+                luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[2] + source_obj.floor_texture_offset[1]) * -0.5
             luv.uv.x = luv.uv.x
             luv.uv.y = luv.uv.y
     bm.to_mesh(mesh)
@@ -148,8 +149,7 @@ def update_brush_sector_materials(ob):
 
 def update_brush(obj):
     bpy.context.view_layer.objects.active = obj
-    if obj is not None:
-
+    if obj:
         while len(obj.modifiers) > 0:
             obj.modifiers.remove(obj.modifiers[0])
 
@@ -329,8 +329,8 @@ bpy.types.Object.csg_operation = bpy.props.EnumProperty(
     default='ADD'
 )
 csg_operation_to_blender_boolean = {
-    "ADD" : "UNION",
-    "SUBTRACT" : "DIFFERENCE"
+    "ADD": "UNION",
+    "SUBTRACT": "DIFFERENCE"
 }
 bpy.types.Object.csg_order = bpy.props.IntProperty(
     name="CSG Order",
@@ -353,7 +353,7 @@ class LevelBuddyPanel(bpy.types.Panel):
     bl_label = "Level Buddy"
     bl_space_type = "VIEW_3D"
     bl_region_type = 'UI'
-    bl_category = 'Buddy Tools'
+    bl_category = 'Level Buddy'
 
     def draw(self, context):
         ob = context.active_object
@@ -365,17 +365,16 @@ class LevelBuddyPanel(bpy.types.Panel):
         col.prop(scn, "flip_normals")
         col = layout.column(align=True)
         col.operator("scene.level_buddy_build_map", text="Build Map", icon="MOD_BUILD").bool_op = "UNION"
-        # layout.separator()
+        col.operator("scene.level_buddy_open_material", text="Open Material", icon="TEXTURE")
         col = layout.column(align=True)
         col.label(icon="SNAP_PEEL_OBJECT", text="Tools")
         if bpy.context.mode == 'EDIT_MESH':
             col.operator("object.level_rip_geometry", text="Rip", icon="UNLINKED").remove_geometry = True
         else:
-            col.operator("scene.level_new_geometry", text="New Sector", icon="MESH_PLANE").brush_type = 'SECTOR'
-            col.operator("scene.level_new_geometry", text="New Brush", icon="CUBE").brush_type = 'BRUSH'
-        # layout.separator()
-        col = layout.column(align=True)
+            col.operator("scene.level_buddy_new_geometry", text="New Sector", icon="MESH_PLANE").brush_type = 'SECTOR'
+            col.operator("scene.level_buddy_new_geometry", text="New Brush", icon="CUBE").brush_type = 'BRUSH'
         if ob is not None and len(bpy.context.selected_objects) > 0:
+            col = layout.column(align=True)
             col.label(icon="MOD_ARRAY", text="Brush Properties")
             col.prop(ob, "brush_type", text="Brush Type")
             col.prop(ob, "csg_operation", text="CSG Op")
@@ -392,6 +391,7 @@ class LevelBuddyPanel(bpy.types.Panel):
                 col.prop(ob, "floor_texture_offset")
             if ob.brush_type == 'SECTOR' and ob.modifiers:
                 col = layout.column(align=True)
+                col.label(icon="MOD_ARRAY", text="Sector Properties")
                 col.prop(ob, "ceiling_height")
                 col.prop(ob, "floor_height")
                 # layout.separator()
@@ -401,11 +401,11 @@ class LevelBuddyPanel(bpy.types.Panel):
                 col.prop_search(ob, "floor_texture", bpy.data, "materials", icon="MATERIAL", text="Floor")
 
 
-class LevelNewGeometry(bpy.types.Operator):
-    bl_idname = "scene.level_new_geometry"
+class LevelBuddyNewGeometry(bpy.types.Operator):
+    bl_idname = "scene.level_buddy_new_geometry"
     bl_label = "Level New Geometry"
 
-    brush_type : bpy.props.StringProperty(name="brush_type", default='NONE')
+    brush_type: bpy.props.StringProperty(name="brush_type", default='NONE')
 
     def execute(self, context):
         scn = bpy.context.scene
@@ -446,11 +446,11 @@ class LevelNewGeometry(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class LevelRipGeometry(bpy.types.Operator):
+class LevelBuddyRipGeometry(bpy.types.Operator):
     bl_idname = "object.level_rip_geometry"
     bl_label = "Level Rip Sector"
 
-    remove_geometry : bpy.props.BoolProperty(name="remove_geometry", default=False)
+    remove_geometry: bpy.props.BoolProperty(name="remove_geometry", default=False)
 
     def execute(self, context):
         active_obj = bpy.context.active_object
@@ -486,10 +486,10 @@ class LevelRipGeometry(bpy.types.Operator):
                     py_verts.append(e.verts[0])
                 if e.verts[1] not in py_verts:
                     py_verts.append(e.verts[1])
-                
+
                 vIndex0 = py_verts.index(e.verts[0])
                 vIndex1 = py_verts.index(e.verts[1])
-                
+
                 py_edges.append([vIndex0, vIndex1])
         else:
             # early out
@@ -497,7 +497,7 @@ class LevelRipGeometry(bpy.types.Operator):
             return {"CANCELLED"}
 
         # remove riped
-        if self.remove_geometry and len(selected_faces) > 0:
+        if active_obj.brush_type != 'BRUSH' and self.remove_geometry and len(selected_faces) > 0:
             edges_to_remove = []
             for f in selected_faces:
                 for e in f.edges:
@@ -506,7 +506,7 @@ class LevelRipGeometry(bpy.types.Operator):
 
             for f in selected_faces:
                 active_obj_bm.faces.remove(f)
-                
+
             for e in edges_to_remove:
                 if e.is_wire:
                     active_obj_bm.edges.remove(e)
@@ -554,13 +554,12 @@ class LevelBuddyBuildMap(bpy.types.Operator):
 
     def execute(self, context):
         scn = bpy.context.scene
-        edit_mode = False
-        oldActiveObj = None
-        if bpy.context.active_object is not None:
-            oldActiveObj = bpy.context.active_object
+        was_edit_mode = False
+        old_active = bpy.context.active_object
+        old_selected = bpy.context.selected_objects.copy()
         if bpy.context.mode == 'EDIT_MESH':
             bpy.ops.object.mode_set(mode='OBJECT')
-            edit_mode = True
+            was_edit_mode = True
 
         brush_dictionary_list = {}
         brush_orders_sorted_list = []
@@ -568,15 +567,20 @@ class LevelBuddyBuildMap(bpy.types.Operator):
         level_map = create_new_boolean_object(scn, "LevelGeometry")
         level_map.data = bpy.data.meshes.new("LevelGeometryMesh")
         level_map.hide_select = True
+        level_map.hide_set(False)
 
         visible_objects = bpy.context.scene.collection.all_objects
         for ob in visible_objects:
+
+            if not ob:
+                continue
+
             if ob != level_map and ob.brush_type != 'NONE':
                 update_brush(ob)
-                
+
                 if brush_dictionary_list.get(ob.csg_order, None) == None:
                     brush_dictionary_list[ob.csg_order] = []
-                
+
                 if ob.csg_order not in brush_orders_sorted_list:
                     brush_orders_sorted_list.append(ob.csg_order)
 
@@ -589,7 +593,7 @@ class LevelBuddyBuildMap(bpy.types.Operator):
         for order in brush_orders_sorted_list:
             brush_list = brush_dictionary_list[order]
             for brush in brush_list:
-                brush.name = "brush" + str(name_index) + "[" + str(order) + "]" + "_" + brush.csg_operation
+                brush.name = brush.csg_operation + "[" + str(order) + "]" + str(name_index)
                 name_index += 1
                 bool_obj = build_bool_object(brush)
                 if brush.brush_auto_texture:
@@ -601,14 +605,17 @@ class LevelBuddyBuildMap(bpy.types.Operator):
         if bpy.context.scene.flip_normals:
             flip_object_normals(level_map)
 
-        level_map.hide_set(False)
+        # restore context
         bpy.ops.object.select_all(action='DESELECT')
-        if oldActiveObj is not None:
-            oldActiveObj.select_set(True)
-            bpy.context.view_layer.objects.active = oldActiveObj
-        if edit_mode:
+        if old_active:
+            old_active.select_set(True)
+            bpy.context.view_layer.objects.active = old_active
+        if was_edit_mode:
             bpy.ops.object.mode_set(mode='EDIT')
-        
+        for obj in old_selected:
+            if obj:
+                obj.select_set(True)
+
         # remove trash
         for o in bpy.data.objects:
             if o.users == 0:
@@ -623,18 +630,73 @@ class LevelBuddyBuildMap(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class LevelBuddyOpenMaterial(bpy.types.Operator, ImportHelper):
+    bl_idname = "scene.level_buddy_open_material"
+    bl_label = "Open Material"
+
+    filter_glob: bpy.props.StringProperty(
+        default='*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp',
+        options={'HIDDEN'}
+    )
+
+    files: bpy.props.CollectionProperty(
+        type=bpy.types.OperatorFileListElement,
+        options={'HIDDEN', 'SKIP_SAVE'},
+    )
+
+    def execute(self, context):
+        directory, fileNameExtension = os.path.split(self.filepath)
+
+        # do it for all selected files/images
+        for f in self.files:
+            fileName, fileExtension = os.path.splitext(f.name)
+
+            # new material or find it
+            new_material_name = fileName
+            new_material = bpy.data.materials.get(new_material_name)
+
+            if new_material == None:
+                new_material = bpy.data.materials.new(new_material_name)
+
+            new_material.use_nodes = True
+            new_material.preview_render_type = 'FLAT'
+
+            # We clear it as we'll define it completely
+            new_material.node_tree.links.clear()
+            new_material.node_tree.nodes.clear()
+
+            # create nodes
+            bsdfNode = new_material.node_tree.nodes.new('ShaderNodeBsdfPrincipled')
+            outputNode = new_material.node_tree.nodes.new('ShaderNodeOutputMaterial')
+            texImageNode = new_material.node_tree.nodes.new('ShaderNodeTexImage')
+            texImageNode.name = fileName
+            texImageNode.image = bpy.data.images.load(directory + "\\" + fileName + fileExtension, check_existing=True)
+
+            # create node links
+            new_material.node_tree.links.new(bsdfNode.outputs['BSDF'], outputNode.inputs['Surface'])
+            new_material.node_tree.links.new(bsdfNode.inputs['Base Color'], texImageNode.outputs['Color'])
+
+            # some params
+            bsdfNode.inputs['Roughness'].default_value = 0
+            bsdfNode.inputs['Specular'].default_value = 0
+
+        return {"FINISHED"}
+
+
 def register():
     bpy.utils.register_class(LevelBuddyPanel)
     bpy.utils.register_class(LevelBuddyBuildMap)
-    bpy.utils.register_class(LevelNewGeometry)
-    bpy.utils.register_class(LevelRipGeometry)
+    bpy.utils.register_class(LevelBuddyNewGeometry)
+    bpy.utils.register_class(LevelBuddyRipGeometry)
+    bpy.utils.register_class(LevelBuddyOpenMaterial)
 
 
 def unregister():
     bpy.utils.unregister_class(LevelBuddyPanel)
     bpy.utils.unregister_class(LevelBuddyBuildMap)
-    bpy.utils.unregister_class(LevelNewGeometry)
-    bpy.utils.unregister_class(LevelRipGeometry)
+    bpy.utils.unregister_class(LevelBuddyNewGeometry)
+    bpy.utils.unregister_class(LevelBuddyRipGeometry)
+    bpy.utils.unregister_class(LevelBuddyOpenMaterial)
 
 
 if __name__ == "__main__":
