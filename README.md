@@ -6,11 +6,13 @@
 
 ## Features
 - Doom-inspired sector-based level editor
+- Brushes (Add and Subtract CSG operations)
 - Sectors can have up to 3 materials: floor + wall + ceiling
-- '3D' Sectors (behave like brushes but are auto-uv)
-- Brushes (Add + Subtract, manual-uv)
-- Auto texture
-- Custom material scale (per sector face)
+- Support for Auto and Manual UV
+
+## Known Issues
+- It crashes often, make sure to save work at all times
+- Some times materials do not bind for some reason. I am looking into it
 
 ## Notes
 - TextureBuddy no longer exists (got merged to main file)

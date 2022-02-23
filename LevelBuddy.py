@@ -231,9 +231,15 @@ def create_new_boolean_object(scn, name):
 
 
 def copy_materials(target, source):
+    if source.data == None:
+        return
+    if source.data.materials == None:
+        return
+
     for sourceMaterial in source.data.materials:
-        if sourceMaterial.name not in target.data.materials:
-            target.data.materials.append(sourceMaterial)
+        if sourceMaterial != None:
+            if sourceMaterial.name not in target.data.materials:
+                target.data.materials.append(sourceMaterial)
 
 
 def copy_transforms(a, b):
@@ -424,7 +430,6 @@ class LevelNewGeometry(bpy.types.Operator):
         ob.csg_order = 0
         ob.brush_auto_texture = True
         bpy.context.view_layer.objects.active = ob
-        bpy.context.object.hide_render = True
 
         ob.ceiling_height = 4
         ob.floor_height = 0
@@ -562,6 +567,7 @@ class LevelBuddyBuildMap(bpy.types.Operator):
 
         level_map = create_new_boolean_object(scn, "LevelGeometry")
         level_map.data = bpy.data.meshes.new("LevelGeometryMesh")
+        level_map.hide_select = True
 
         visible_objects = bpy.context.scene.collection.all_objects
         for ob in visible_objects:
@@ -583,7 +589,7 @@ class LevelBuddyBuildMap(bpy.types.Operator):
         for order in brush_orders_sorted_list:
             brush_list = brush_dictionary_list[order]
             for brush in brush_list:
-                brush.name = "brush" + str(name_index)
+                brush.name = "brush" + str(name_index) + "[" + str(order) + "]" + "_" + brush.csg_operation
                 name_index += 1
                 bool_obj = build_bool_object(brush)
                 if brush.brush_auto_texture:
