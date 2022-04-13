@@ -122,15 +122,26 @@ def _update_sector_solidify(self, context):
 
 
 def update_brush_sector_modifier(ob):
-    bpy.ops.object.modifier_add(type='SOLIDIFY')
-    mod = ob.modifiers[0]
-    mod.use_even_offset = True
-    mod.use_quality_normals = True
-    mod.use_even_offset = True
-    mod.thickness = ob.ceiling_height - ob.floor_height
-    mod.offset = 1 + ob.floor_height / (mod.thickness / 2)
-    mod.material_offset = 1
-    mod.material_offset_rim = 2
+    has_solidify = False
+    for mod in ob.modifiers:
+        if mod.type == 'SOLIDIFY':
+            has_solidify = True
+            break
+
+    if not has_solidify:
+        bpy.ops.object.modifier_add(type='SOLIDIFY')
+
+    for mod in ob.modifiers:
+        if mod.type == 'SOLIDIFY':
+            mod = ob.modifiers[0]
+            mod.use_even_offset = True
+            mod.use_quality_normals = True
+            mod.use_even_offset = True
+            mod.thickness = ob.ceiling_height - ob.floor_height
+            mod.offset = 1 + ob.floor_height / (mod.thickness / 2)
+            mod.material_offset = 1
+            mod.material_offset_rim = 2
+            break
 
 
 def update_brush_sector_materials(ob):
@@ -181,8 +192,8 @@ def update_brush_sector_materials(ob):
 def update_brush(obj):
     bpy.context.view_layer.objects.active = obj
     if obj:
-        while len(obj.modifiers) > 0:
-            obj.modifiers.remove(obj.modifiers[0])
+        # while len(obj.modifiers) > 0:
+        #     obj.modifiers.remove(obj.modifiers[0])
 
         if obj.brush_type == 'SECTOR':
             update_brush_sector_modifier(obj)
