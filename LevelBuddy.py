@@ -147,6 +147,37 @@ def update_brush_sector_materials(ob):
         ob.material_slots[2].material = bpy.data.materials[ob.wall_texture]
 
 
+# def update_brush_sector_materials(ob):
+#     matCount = 0
+
+#     ceilingMat = bpy.data.materials.find(ob.ceiling_texture) if ob.ceiling_texture != bpy.context.scene.remove_material else -1
+#     floorMat = bpy.data.materials.find(ob.floor_texture) if ob.floor_texture != bpy.context.scene.remove_material else -1
+#     wallMat = bpy.data.materials.find(ob.wall_texture) if ob.wall_texture != bpy.context.scene.remove_material else -1
+
+#     if ceilingMat != -1:
+#         matCount += 1
+#     if floorMat != -1:
+#         matCount += 1
+#     if wallMat != -1:
+#         matCount += 1
+
+#     while len(ob.material_slots) < matCount:
+#         bpy.ops.object.material_slot_add()
+#     while len(ob.material_slots) > matCount:
+#         bpy.ops.object.material_slot_remove()
+
+#     matIndex = 0
+#     if ceilingMat != -1:
+#         ob.material_slots[matIndex].material = bpy.data.materials[ob.ceiling_texture]
+#         matIndex += 1
+#     if floorMat != -1:
+#         ob.material_slots[matIndex].material = bpy.data.materials[ob.floor_texture]
+#         matIndex += 1
+#     if wallMat != -1:
+#         ob.material_slots[matIndex].material = bpy.data.materials[ob.wall_texture]
+#         matIndex += 1
+
+
 def update_brush(obj):
     bpy.context.view_layer.objects.active = obj
     if obj:
@@ -248,12 +279,36 @@ def copy_transforms(a, b):
     a.rotation_euler = b.rotation_euler
 
 
+def remove_material(obj):
+    scn = bpy.context.scene
+    if scn.remove_material is not "":
+        i = 0
+        remove = False
+        for m in obj.material_slots:
+            if scn.remove_material == m.name:
+                remove = True
+            else:
+                if not remove:
+                    i += 1
+        obj.active_material_index = i
+        bpy.ops.object.editmode_toggle()
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.material_slot_select()
+        bpy.ops.mesh.delete(type='FACE')
+        bpy.ops.object.editmode_toggle()
+        bpy.ops.object.material_slot_remove()
+
+
 bpy.types.Scene.map_precision = bpy.props.IntProperty(
     name="Map Precision",
     default=3,
     min=0,
     max=6,
     description='Controls the rounding level of vertex precisions.  Lower numbers round to higher values.  A level of "1" would round 1.234 to 1.2 and a level of "2" would round to 1.23'
+)
+bpy.types.Scene.remove_material = bpy.props.StringProperty(
+    name="Remove Material",
+    description="when the map is built all faces with this material will be removed."
 )
 bpy.types.Object.texture_tillings = bpy.props.FloatVectorProperty(
     name="Texture Tillings",
@@ -363,6 +418,7 @@ class LevelBuddyPanel(bpy.types.Panel):
         col.label(icon="WORLD", text="Map Settings")
         col.prop(scn, "map_precision")
         col.prop(scn, "flip_normals")
+        col.prop_search(scn, "remove_material", bpy.data, "materials")
         col = layout.column(align=True)
         col.operator("scene.level_buddy_build_map", text="Build Map", icon="MOD_BUILD").bool_op = "UNION"
         col.operator("scene.level_buddy_open_material", text="Open Material", icon="TEXTURE")
@@ -599,6 +655,8 @@ class LevelBuddyBuildMap(bpy.types.Operator):
                 if brush.brush_auto_texture:
                     auto_texture(bool_obj, brush)
                 apply_CSG(level_map, brush, bool_obj)
+
+        remove_material(level_map)
 
         update_location_precision(level_map)
 
