@@ -17,6 +17,7 @@
 
 
 import os
+import math
 import bpy
 import bmesh
 import addon_utils
@@ -301,13 +302,15 @@ def remove_material(obj):
             else:
                 if not remove:
                     i += 1
-        obj.active_material_index = i
-        bpy.ops.object.editmode_toggle()
-        bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.object.material_slot_select()
-        bpy.ops.mesh.delete(type='FACE')
-        bpy.ops.object.editmode_toggle()
-        bpy.ops.object.material_slot_remove()
+        
+        if remove:
+            obj.active_material_index = i
+            bpy.ops.object.editmode_toggle()
+            bpy.ops.mesh.select_all(action='DESELECT')
+            bpy.ops.object.material_slot_select()
+            bpy.ops.mesh.delete(type='FACE')
+            bpy.ops.object.editmode_toggle()
+            bpy.ops.object.material_slot_remove()
 
 
 bpy.types.Scene.map_precision = bpy.props.IntProperty(
@@ -316,6 +319,25 @@ bpy.types.Scene.map_precision = bpy.props.IntProperty(
     min=0,
     max=6,
     description='Controls the rounding level of vertex precisions.  Lower numbers round to higher values.  A level of "1" would round 1.234 to 1.2 and a level of "2" would round to 1.23'
+)
+bpy.types.Scene.map_use_auto_smooth = bpy.props.BoolProperty(
+    name="Map Auto smooth",
+    description='Use auto smooth',
+    default=True,
+)
+bpy.types.Scene.map_auto_smooth_angle = bpy.props.FloatProperty(
+    name="Map Auto smooth angle",
+    description='Auto smooth angle',
+    default=30,
+    min = 0,
+    max = 180,
+    step=1,
+    precision=0,
+)
+bpy.types.Scene.map_flip_normals = bpy.props.BoolProperty(
+    name="Map Flip Normals",
+    description='Flip output map normals',
+    default=True,
 )
 bpy.types.Scene.remove_material = bpy.props.StringProperty(
     name="Remove Material",
@@ -408,11 +430,6 @@ bpy.types.Object.brush_auto_texture = bpy.props.BoolProperty(
     default=True,
     description='Auto Texture on or off'
 )
-bpy.types.Scene.flip_normals = bpy.props.BoolProperty(
-    name="Flip Normals",
-    default=True,
-    description='Flip output normals'
-)
 
 
 class LevelBuddyPanel(bpy.types.Panel):
@@ -427,8 +444,10 @@ class LevelBuddyPanel(bpy.types.Panel):
         layout = self.layout
         col = layout.column(align=True)
         col.label(icon="WORLD", text="Map Settings")
+        col.prop(scn, "map_flip_normals")
         col.prop(scn, "map_precision")
-        col.prop(scn, "flip_normals")
+        col.prop(scn, "map_use_auto_smooth")
+        col.prop(scn, "map_auto_smooth_angle")
         col.prop_search(scn, "remove_material", bpy.data, "materials")
         col = layout.column(align=True)
         col.operator("scene.level_buddy_build_map", text="Build Map", icon="MOD_BUILD").bool_op = "UNION"
@@ -633,6 +652,8 @@ class LevelBuddyBuildMap(bpy.types.Operator):
 
         level_map = create_new_boolean_object(scn, "LevelGeometry")
         level_map.data = bpy.data.meshes.new("LevelGeometryMesh")
+        level_map.data.use_auto_smooth = scn.map_use_auto_smooth
+        level_map.data.auto_smooth_angle = math.radians(scn.map_auto_smooth_angle)
         level_map.hide_select = True
         level_map.hide_set(False)
 
@@ -671,7 +692,7 @@ class LevelBuddyBuildMap(bpy.types.Operator):
 
         update_location_precision(level_map)
 
-        if bpy.context.scene.flip_normals:
+        if bpy.context.scene.map_flip_normals:
             flip_object_normals(level_map)
 
         # restore context
