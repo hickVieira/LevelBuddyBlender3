@@ -217,7 +217,7 @@ def cleanup_vertex_precision(ob):
             v.co.z = round(v.co.z, p)
 
 
-def apply_CSG(target, source_obj, bool_obj):
+def apply_csg(target, source_obj, bool_obj):
     bpy.ops.object.select_all(action='DESELECT')
     target.select_set(True)
 
@@ -498,16 +498,13 @@ class LevelBuddyNewGeometry(bpy.types.Operator):
         bpy.ops.object.select_all(action='DESELECT')
 
         if self.brush_type == 'SECTOR':
-            bpy.ops.mesh.primitive_plane_add(size=1)
+            bpy.ops.mesh.primitive_plane_add(size=2)
         else:
-            bpy.ops.mesh.primitive_cube_add(size=1)
+            bpy.ops.mesh.primitive_cube_add(size=2)
 
         ob = bpy.context.active_object
 
-        if self.brush_type == 'SECTOR':
-            ob.csg_operation = 'SUBTRACT'
-        else:
-            ob.csg_operation = 'ADD'
+        ob.csg_operation = 'ADD'
 
         ob.display_type = 'WIRE'
         ob.name = self.brush_type
@@ -605,9 +602,9 @@ class LevelBuddyRipGeometry(bpy.types.Operator):
         riped_mesh = bpy.data.meshes.new(name='riped_mesh')
         mat = active_obj.matrix_world
         if len(py_faces) > 0:
-            riped_mesh.from_pydata([mat @ x.co for x in py_verts], [], py_faces)
+            riped_mesh.from_pydata([x.co for x in py_verts], [], py_faces)
         else:
-            riped_mesh.from_pydata([mat @ x.co for x in py_verts], py_edges, [])
+            riped_mesh.from_pydata([x.co for x in py_verts], py_edges, [])
 
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -686,7 +683,7 @@ class LevelBuddyBuildMap(bpy.types.Operator):
                 bool_obj = build_bool_object(brush)
                 if brush.brush_auto_texture:
                     auto_texture(bool_obj, brush)
-                apply_CSG(level_map, brush, bool_obj)
+                apply_csg(level_map, brush, bool_obj)
 
         remove_material(level_map)
 
