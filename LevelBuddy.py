@@ -75,23 +75,23 @@ def auto_texture(bool_obj, source_obj):
         for l in f.loops:
             luv = l[uv_layer]
             if faceDirection == "x":
-                luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * 0.5
-                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]) * 0.5
+                luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.wall_texture_scale_offset[0] + source_obj.wall_texture_scale_offset[2]) * 0.5
+                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.wall_texture_scale_offset[1] + source_obj.wall_texture_scale_offset[3]) * 0.5
             if faceDirection == "-x":
-                luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * -0.5
-                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]) * 0.5
+                luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.wall_texture_scale_offset[0] + source_obj.wall_texture_scale_offset[2]) * -0.5
+                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.wall_texture_scale_offset[1] + source_obj.wall_texture_scale_offset[3]) * 0.5
             if faceDirection == "y":
-                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * -0.5
-                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]) * 0.5
+                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.wall_texture_scale_offset[0] + source_obj.wall_texture_scale_offset[2]) * -0.5
+                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.wall_texture_scale_offset[1] + source_obj.wall_texture_scale_offset[3]) * 0.5
             if faceDirection == "-y":
-                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[0]) * 0.5
-                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.texture_tillings[1] + source_obj.wall_texture_offset[1]) * 0.5
+                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.wall_texture_scale_offset[0] + source_obj.wall_texture_scale_offset[2]) * 0.5
+                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.wall_texture_scale_offset[1] + source_obj.wall_texture_scale_offset[3]) * 0.5
             if faceDirection == "z":
-                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[0] + source_obj.ceiling_texture_offset[0]) * 0.5
-                luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[0] + source_obj.ceiling_texture_offset[1]) * 0.5
+                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.ceiling_texture_scale_offset[0] + source_obj.ceiling_texture_scale_offset[2]) * 0.5
+                luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.ceiling_texture_scale_offset[1] + source_obj.ceiling_texture_scale_offset[3]) * 0.5
             if faceDirection == "-z":
-                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.texture_tillings[2] + source_obj.floor_texture_offset[0]) * 0.5
-                luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.texture_tillings[2] + source_obj.floor_texture_offset[1]) * -0.5
+                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.floor_texture_scale_offset[0] + source_obj.floor_texture_scale_offset[2]) * 0.5
+                luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.floor_texture_scale_offset[1] + source_obj.floor_texture_scale_offset[3]) * -0.5
             luv.uv.x = luv.uv.x
             luv.uv.y = luv.uv.y
     bm.to_mesh(mesh)
@@ -123,18 +123,23 @@ def _update_sector_solidify(self, context):
 
 
 def update_brush_sector_modifier(ob):
+    if ob.brush_type == 'BRUSH':
+        for mod in ob.modifiers:
+            if mod.type == 'SOLIDIFY':
+                ob.modifiers.remove(mod)
+        return
+
     has_solidify = False
     for mod in ob.modifiers:
         if mod.type == 'SOLIDIFY':
             has_solidify = True
             break
-
+    
     if not has_solidify:
         bpy.ops.object.modifier_add(type='SOLIDIFY')
 
     for mod in ob.modifiers:
         if mod.type == 'SOLIDIFY':
-            mod = ob.modifiers[0]
             mod.use_even_offset = True
             mod.use_quality_normals = True
             mod.use_even_offset = True
@@ -196,10 +201,12 @@ def update_brush(obj):
         # while len(obj.modifiers) > 0:
         #     obj.modifiers.remove(obj.modifiers[0])
 
+        obj.display_type = 'WIRE'
+
+        update_brush_sector_modifier(obj)
+
         if obj.brush_type == 'SECTOR':
-            update_brush_sector_modifier(obj)
             update_brush_sector_materials(obj)
-        # else:
 
         update_location_precision(obj)
 
@@ -343,36 +350,29 @@ bpy.types.Scene.remove_material = bpy.props.StringProperty(
     name="Remove Material",
     description="when the map is built all faces with this material will be removed."
 )
-bpy.types.Object.texture_tillings = bpy.props.FloatVectorProperty(
-    name="Texture Tillings",
-    default=(1, 1, 1),
+bpy.types.Object.ceiling_texture_scale_offset = bpy.props.FloatVectorProperty(
+    name="Ceiling Texture Scale Offset",
+    default=(1, 1, 0, 0),
     min=0,
     step=10,
     precision=3,
+    size=4
 )
-bpy.types.Object.ceiling_texture_offset = bpy.props.FloatVectorProperty(
-    name="Ceiling Texture Offset",
-    default=(0, 0),
+bpy.types.Object.wall_texture_scale_offset = bpy.props.FloatVectorProperty(
+    name="Wall Texture Scale Offset",
+    default=(1, 1, 0, 0),
     min=0,
     step=10,
     precision=3,
-    size=2
+    size=4
 )
-bpy.types.Object.wall_texture_offset = bpy.props.FloatVectorProperty(
-    name="Wall Texture Offset",
-    default=(0, 0),
+bpy.types.Object.floor_texture_scale_offset = bpy.props.FloatVectorProperty(
+    name="Floor Texture Scale Offset",
+    default=(1, 1, 0, 0),
     min=0,
     step=10,
     precision=3,
-    size=2
-)
-bpy.types.Object.floor_texture_offset = bpy.props.FloatVectorProperty(
-    name="Floor Texture Offset",
-    default=(0, 0),
-    min=0,
-    step=10,
-    precision=3,
-    size=2
+    size=4
 )
 bpy.types.Object.ceiling_height = bpy.props.FloatProperty(
     name="Ceiling Height",
@@ -467,14 +467,12 @@ class LevelBuddyPanel(bpy.types.Panel):
             col.prop(ob, "csg_order", text="CSG Order")
             col.prop(ob, "brush_auto_texture", text="Auto Texture")
             if ob.brush_auto_texture:
-                col = layout.column(align=True)
-                col.prop(ob, "texture_tillings")
                 col = layout.row(align=True)
-                col.prop(ob, "ceiling_texture_offset")
+                col.prop(ob, "ceiling_texture_scale_offset")
                 col = layout.row(align=True)
-                col.prop(ob, "wall_texture_offset")
+                col.prop(ob, "wall_texture_scale_offset")
                 col = layout.row(align=True)
-                col.prop(ob, "floor_texture_offset")
+                col.prop(ob, "floor_texture_scale_offset")
             if ob.brush_type == 'SECTOR' and ob.modifiers:
                 col = layout.column(align=True)
                 col.label(icon="MOD_ARRAY", text="Sector Properties")
@@ -516,10 +514,9 @@ class LevelBuddyNewGeometry(bpy.types.Operator):
 
         ob.ceiling_height = 4
         ob.floor_height = 0
-        ob.texture_tillings = (1.0, 1.0, 1.0)
-        ob.ceiling_texture_offset = (0.0, 0.0)
-        ob.wall_texture_offset = (0.0, 0.0)
-        ob.floor_texture_offset = (0.0, 0.0)
+        ob.ceiling_texture_offset = (1.0, 1.0, 0.0, 0.0)
+        ob.wall_texture_offset = (1.0, 1.0, 0.0, 0.0)
+        ob.floor_texture_offset = (1.0, 1.0, 0.0, 0.0)
         ob.ceiling_texture = ""
         ob.wall_texture = ""
         ob.floor_texture = ""
