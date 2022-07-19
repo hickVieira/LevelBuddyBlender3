@@ -130,9 +130,9 @@ def auto_texture(bool_obj, source_obj):
 
 
 def update_location_precision(ob):
-    ob.location.x = round(ob.location.x, 1)
-    ob.location.y = round(ob.location.y, 1)
-    ob.location.z = round(ob.location.z, 1)
+    ob.location.x = round(ob.location.x, bpy.context.scene.map_precision)
+    ob.location.y = round(ob.location.y, bpy.context.scene.map_precision)
+    ob.location.z = round(ob.location.z, bpy.context.scene.map_precision)
     cleanup_vertex_precision(ob)
 
 
@@ -241,16 +241,14 @@ def update_brush(obj):
 
 
 def cleanup_vertex_precision(ob):
-    p = bpy.context.scene.map_precision
-    if ob.type == 'BRUSH':
-        for v in ob.data.vertices:
-            if ob.modifiers:
-                mod = ob.modifiers[0]
-                if mod.type == "SOLIDIFY":
-                    v.co.z = ob.floor_height
-            v.co.x = round(v.co.x, p)
-            v.co.y = round(v.co.y, p)
-            v.co.z = round(v.co.z, p)
+    for v in ob.data.vertices:
+        if ob.modifiers:
+            mod = ob.modifiers[0]
+            if mod.type == "SOLIDIFY":
+                v.co.z = ob.floor_height
+        v.co.x = round(v.co.x, bpy.context.scene.map_precision)
+        v.co.y = round(v.co.y, bpy.context.scene.map_precision)
+        v.co.z = round(v.co.z, bpy.context.scene.map_precision)
 
 
 def apply_csg(target, source_obj, bool_obj):
@@ -667,9 +665,10 @@ class LevelBuddyRipGeometry(bpy.types.Operator):
         bpy.ops.object.select_all(action='DESELECT')
 
         riped_obj = active_obj.copy()
+        for coll in active_obj.users_collection:
+            coll.objects.link(riped_obj)
         riped_obj.data = riped_mesh
         copy_materials(riped_obj, active_obj)
-        bpy.context.scene.collection.objects.link(riped_obj)
 
         riped_obj.select_set(True)
         bpy.context.view_layer.objects.active = riped_obj
