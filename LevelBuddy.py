@@ -16,6 +16,7 @@
 #  ***** END GPL LICENSE BLOCK *****
 
 
+from copy import copy
 import os
 import math
 import bpy
@@ -35,6 +36,18 @@ bl_info = {
     "category": "Object",
 }
 
+def translate(val, t):
+    return val + t
+
+def scale(val, s):
+    return val * s
+
+def rotate2D(uv, degrees):
+    radians = math.radians(degrees)
+    newUV = copy(uv)
+    newUV.x = uv.x*math.cos(radians) - uv.y*math.sin(radians)
+    newUV.y = uv.x*math.sin(radians) + uv.y*math.cos(radians)
+    return newUV
 
 def auto_texture(bool_obj, source_obj):
     mesh = bool_obj.data
@@ -75,25 +88,41 @@ def auto_texture(bool_obj, source_obj):
         for l in f.loops:
             luv = l[uv_layer]
             if faceDirection == "x":
-                luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.wall_texture_scale_offset[0] + source_obj.wall_texture_scale_offset[2]) * 0.5
-                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.wall_texture_scale_offset[1] + source_obj.wall_texture_scale_offset[3]) * 0.5
+                luv.uv.x = ((l.vert.co.y * objectScale[1]) + objectLocation[1])
+                luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2])
+                luv.uv = rotate2D(luv.uv, source_obj.wall_texture_rotation)
+                luv.uv.x =  translate(scale(luv.uv.x, source_obj.wall_texture_scale_offset[0]), source_obj.wall_texture_scale_offset[2])
+                luv.uv.y =  translate(scale(luv.uv.y, source_obj.wall_texture_scale_offset[1]), source_obj.wall_texture_scale_offset[3])
             if faceDirection == "-x":
-                luv.uv.x = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.wall_texture_scale_offset[0] + source_obj.wall_texture_scale_offset[2]) * -0.5
-                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.wall_texture_scale_offset[1] + source_obj.wall_texture_scale_offset[3]) * 0.5
+                luv.uv.x = ((l.vert.co.y * objectScale[1]) + objectLocation[1])
+                luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2])
+                luv.uv = rotate2D(luv.uv, source_obj.wall_texture_rotation)
+                luv.uv.x =  translate(scale(luv.uv.x, source_obj.wall_texture_scale_offset[0]), source_obj.wall_texture_scale_offset[2])
+                luv.uv.y =  translate(scale(luv.uv.y, source_obj.wall_texture_scale_offset[1]), source_obj.wall_texture_scale_offset[3])
             if faceDirection == "y":
-                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.wall_texture_scale_offset[0] + source_obj.wall_texture_scale_offset[2]) * -0.5
-                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.wall_texture_scale_offset[1] + source_obj.wall_texture_scale_offset[3]) * 0.5
+                luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0])
+                luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2])
+                luv.uv = rotate2D(luv.uv, source_obj.wall_texture_rotation)
+                luv.uv.x =  translate(scale(luv.uv.x, source_obj.wall_texture_scale_offset[0]), source_obj.wall_texture_scale_offset[2])
+                luv.uv.y =  translate(scale(luv.uv.y, source_obj.wall_texture_scale_offset[1]), source_obj.wall_texture_scale_offset[3])
             if faceDirection == "-y":
-                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.wall_texture_scale_offset[0] + source_obj.wall_texture_scale_offset[2]) * 0.5
-                luv.uv.y = (((l.vert.co.z * objectScale[2]) + objectLocation[2]) * source_obj.wall_texture_scale_offset[1] + source_obj.wall_texture_scale_offset[3]) * 0.5
+                luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0])
+                luv.uv.y = ((l.vert.co.z * objectScale[2]) + objectLocation[2])
+                luv.uv = rotate2D(luv.uv, source_obj.wall_texture_rotation)
+                luv.uv.x =  translate(scale(luv.uv.x, source_obj.wall_texture_scale_offset[0]), source_obj.wall_texture_scale_offset[2])
+                luv.uv.y =  translate(scale(luv.uv.y, source_obj.wall_texture_scale_offset[1]), source_obj.wall_texture_scale_offset[3])
             if faceDirection == "z":
-                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.ceiling_texture_scale_offset[0] + source_obj.ceiling_texture_scale_offset[2]) * 0.5
-                luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.ceiling_texture_scale_offset[1] + source_obj.ceiling_texture_scale_offset[3]) * 0.5
+                luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0])
+                luv.uv.y = ((l.vert.co.y * objectScale[1]) + objectLocation[1])
+                luv.uv = rotate2D(luv.uv, source_obj.ceiling_texture_rotation)
+                luv.uv.x =  translate(scale(luv.uv.x, source_obj.ceiling_texture_scale_offset[0]), source_obj.ceiling_texture_scale_offset[2])
+                luv.uv.y =  translate(scale(luv.uv.y, source_obj.ceiling_texture_scale_offset[1]), source_obj.ceiling_texture_scale_offset[3])
             if faceDirection == "-z":
-                luv.uv.x = (((l.vert.co.x * objectScale[0]) + objectLocation[0]) * source_obj.floor_texture_scale_offset[0] + source_obj.floor_texture_scale_offset[2]) * 0.5
-                luv.uv.y = (((l.vert.co.y * objectScale[1]) + objectLocation[1]) * source_obj.floor_texture_scale_offset[1] + source_obj.floor_texture_scale_offset[3]) * -0.5
-            luv.uv.x = luv.uv.x
-            luv.uv.y = luv.uv.y
+                luv.uv.x = ((l.vert.co.x * objectScale[0]) + objectLocation[0])
+                luv.uv.y = ((l.vert.co.y * objectScale[1]) + objectLocation[1])
+                luv.uv = rotate2D(luv.uv, source_obj.floor_texture_rotation)
+                luv.uv.x =  translate(scale(luv.uv.x, source_obj.floor_texture_scale_offset[0]), source_obj.floor_texture_scale_offset[2])
+                luv.uv.y =  translate(scale(luv.uv.y, source_obj.floor_texture_scale_offset[1]), source_obj.floor_texture_scale_offset[3])
     bm.to_mesh(mesh)
     bm.free()
 
@@ -374,6 +403,27 @@ bpy.types.Object.floor_texture_scale_offset = bpy.props.FloatVectorProperty(
     precision=3,
     size=4
 )
+bpy.types.Object.ceiling_texture_rotation = bpy.props.FloatProperty(
+    name="Ceiling Texture Rotation",
+    default=0,
+    min=0,
+    step=10,
+    precision=3,
+)
+bpy.types.Object.wall_texture_rotation = bpy.props.FloatProperty(
+    name="Wall Texture Rotation",
+    default=0,
+    min=0,
+    step=10,
+    precision=3,
+)
+bpy.types.Object.floor_texture_rotation = bpy.props.FloatProperty(
+    name="Floor Texture Rotation",
+    default=0,
+    min=0,
+    step=10,
+    precision=3,
+)
 bpy.types.Object.ceiling_height = bpy.props.FloatProperty(
     name="Ceiling Height",
     default=4,
@@ -473,6 +523,12 @@ class LevelBuddyPanel(bpy.types.Panel):
                 col.prop(ob, "wall_texture_scale_offset")
                 col = layout.row(align=True)
                 col.prop(ob, "floor_texture_scale_offset")
+                col = layout.row(align=True)
+                col.prop(ob, "ceiling_texture_rotation")
+                col = layout.row(align=True)
+                col.prop(ob, "wall_texture_rotation")
+                col = layout.row(align=True)
+                col.prop(ob, "floor_texture_rotation")
             if ob.brush_type == 'SECTOR' and ob.modifiers:
                 col = layout.column(align=True)
                 col.label(icon="MOD_ARRAY", text="Sector Properties")
@@ -514,9 +570,12 @@ class LevelBuddyNewGeometry(bpy.types.Operator):
 
         ob.ceiling_height = 4
         ob.floor_height = 0
-        ob.ceiling_texture_offset = (1.0, 1.0, 0.0, 0.0)
-        ob.wall_texture_offset = (1.0, 1.0, 0.0, 0.0)
-        ob.floor_texture_offset = (1.0, 1.0, 0.0, 0.0)
+        ob.ceiling_texture_scale_offset = (1.0, 1.0, 0.0, 0.0)
+        ob.wall_texture_scale_offset = (1.0, 1.0, 0.0, 0.0)
+        ob.floor_texture_scale_offset = (1.0, 1.0, 0.0, 0.0)
+        ob.ceiling_texture_roation = 0
+        ob.wall_texture_roation = 0
+        ob.floor_texture_roation = 0
         ob.ceiling_texture = ""
         ob.wall_texture = ""
         ob.floor_texture = ""
