@@ -573,9 +573,9 @@ class LevelBuddyNewGeometry(bpy.types.Operator):
         ob.ceiling_texture_scale_offset = (1.0, 1.0, 0.0, 0.0)
         ob.wall_texture_scale_offset = (1.0, 1.0, 0.0, 0.0)
         ob.floor_texture_scale_offset = (1.0, 1.0, 0.0, 0.0)
-        ob.ceiling_texture_roation = 0
-        ob.wall_texture_roation = 0
-        ob.floor_texture_roation = 0
+        ob.ceiling_texture_rotation = 0
+        ob.wall_texture_rotation = 0
+        ob.floor_texture_rotation = 0
         ob.ceiling_texture = ""
         ob.wall_texture = ""
         ob.floor_texture = ""
