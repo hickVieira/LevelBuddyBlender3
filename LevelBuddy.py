@@ -288,7 +288,7 @@ def flip_object_normals(ob):
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
-def create_new_boolean_object(scn, name):
+def create_new_boolean_object(scn, index, name):
     old_map = None
     if bpy.data.meshes.get(name + "_MESH") is not None:
         old_map = bpy.data.meshes[name + "_MESH"]
@@ -300,6 +300,9 @@ def create_new_boolean_object(scn, name):
     else:
         ob = bpy.data.objects[name]
         ob.data = me
+    
+    ob.lb_map_using_index = index
+
     if old_map is not None:
         bpy.data.meshes.remove(old_map)
     # bpy.context.view_layer.objects.active = ob
@@ -327,7 +330,7 @@ def copy_transforms(a, b):
 
 def remove_material(obj):
     scn = bpy.context.scene
-    if scn.remove_material is not "":
+    if scn.remove_material != "":
         i = 0
         remove = False
         for m in obj.material_slots:
@@ -479,6 +482,17 @@ bpy.types.Object.brush_auto_texture = bpy.props.BoolProperty(
     description='Auto Texture on or off'
 )
 
+bpy.types.Object.lb_map_index = bpy.props.IntProperty(
+    name="Map Index",
+    default=0,
+    description="Index of the map this brush / sector works on. Each map index gets its own level geometry object, with brushes and sectors combining only for maps with the same index.",
+    min=0,
+)
+
+bpy.types.Object.lb_map_using_index = bpy.props.IntProperty(
+    name="Map Using Index; if this is not 0, it indicates a LevelBuddy geometry object (hidden)",
+    default=-1,
+)
 
 class LevelBuddyPanel(bpy.types.Panel):
     bl_label = "Level Buddy"
@@ -513,6 +527,7 @@ class LevelBuddyPanel(bpy.types.Panel):
             col.prop(ob, "brush_type", text="Brush Type")
             col.prop(ob, "csg_operation", text="CSG Op")
             col.prop(ob, "csg_order", text="CSG Order")
+            col.prop(ob, "lb_map_index", text="Map Index")
             col.prop(ob, "brush_auto_texture", text="Auto Texture")
             if ob.brush_auto_texture:
                 col = layout.row(align=True)
@@ -577,6 +592,8 @@ class LevelBuddyNewGeometry(bpy.types.Operator):
         ob.ceiling_texture = ""
         ob.wall_texture = ""
         ob.floor_texture = ""
+
+        ob.lb_map_index = 0
 
         update_brush(ob)
 
@@ -699,53 +716,65 @@ class LevelBuddyBuildMap(bpy.types.Operator):
             bpy.ops.object.mode_set(mode='OBJECT')
             was_edit_mode = True
 
-        brush_dictionary_list = {}
-        brush_orders_sorted_list = []
-
-        level_map = create_new_boolean_object(scn, "LevelGeometry")
-        level_map.data = bpy.data.meshes.new("LevelGeometryMesh")
-        level_map.data.use_auto_smooth = scn.map_use_auto_smooth
-        level_map.data.auto_smooth_angle = math.radians(scn.map_auto_smooth_angle)
-        level_map.hide_select = True
-        level_map.hide_set(False)
-
         visible_objects = bpy.context.scene.collection.all_objects
+
+        mapsToElements = {}
+
         for ob in visible_objects:
-
-            if not ob:
+            if not ob or ob.brush_type == "NONE":
                 continue
+            if not ob.lb_map_index in mapsToElements:
+                mapsToElements[ob.lb_map_index] = []
+            mapsToElements[ob.lb_map_index].append(ob)
 
-            if ob != level_map and ob.brush_type != 'NONE':
-                update_brush(ob)
+        for geometryIndex in mapsToElements:
 
-                if brush_dictionary_list.get(ob.csg_order, None) == None:
-                    brush_dictionary_list[ob.csg_order] = []
+            brush_dictionary_list = {}
+            brush_orders_sorted_list = []
 
-                if ob.csg_order not in brush_orders_sorted_list:
-                    brush_orders_sorted_list.append(ob.csg_order)
+            level_map = create_new_boolean_object(scn, geometryIndex, "LevelGeometry" + str(geometryIndex))
+            level_map.data = bpy.data.meshes.new("LevelGeometryMesh" + str(geometryIndex))
+            level_map.data.use_auto_smooth = scn.map_use_auto_smooth
+            level_map.data.auto_smooth_angle = math.radians(scn.map_auto_smooth_angle)
+            level_map.hide_select = True
+            level_map.hide_set(False)
 
-                brush_dictionary_list[ob.csg_order].append(ob)
+            for ob in visible_objects:
 
-        brush_orders_sorted_list.sort()
-        bpy.context.view_layer.objects.active = level_map
+                if not ob or ob.lb_map_index != geometryIndex:
+                    continue
 
-        name_index = 0
-        for order in brush_orders_sorted_list:
-            brush_list = brush_dictionary_list[order]
-            for brush in brush_list:
-                brush.name = brush.csg_operation + "[" + str(order) + "]" + str(name_index)
-                name_index += 1
-                bool_obj = build_bool_object(brush)
-                if brush.brush_auto_texture:
-                    auto_texture(bool_obj, brush)
-                apply_csg(level_map, brush, bool_obj)
+                if ob != level_map and ob.brush_type != 'NONE':
+                    update_brush(ob)
 
-        remove_material(level_map)
+                    if brush_dictionary_list.get(ob.csg_order, None) == None:
+                        brush_dictionary_list[ob.csg_order] = []
 
-        update_location_precision(level_map)
+                    if ob.csg_order not in brush_orders_sorted_list:
+                        brush_orders_sorted_list.append(ob.csg_order)
 
-        if bpy.context.scene.map_flip_normals:
-            flip_object_normals(level_map)
+                    brush_dictionary_list[ob.csg_order].append(ob)
+
+            brush_orders_sorted_list.sort()
+            bpy.context.view_layer.objects.active = level_map
+
+            name_index = 0
+            for order in brush_orders_sorted_list:
+                brush_list = brush_dictionary_list[order]
+                for brush in brush_list:
+                    brush.name = brush.csg_operation + "[" + str(order) + "]" + str(name_index)
+                    name_index += 1
+                    bool_obj = build_bool_object(brush)
+                    if brush.brush_auto_texture:
+                        auto_texture(bool_obj, brush)
+                    apply_csg(level_map, brush, bool_obj)
+
+            remove_material(level_map)
+
+            update_location_precision(level_map)
+
+            if bpy.context.scene.map_flip_normals:
+                flip_object_normals(level_map)
 
         # restore context
         bpy.ops.object.select_all(action='DESELECT')
@@ -760,8 +789,12 @@ class LevelBuddyBuildMap(bpy.types.Operator):
 
         # remove trash
         for o in bpy.data.objects:
-            if o.users == 0:
+            # A LevelBuddy LevelGeometry object that no longer has brushes can be destroyed
+            if o.brush_type == "NONE" and o.lb_map_using_index >= 0 and o.lb_map_using_index not in mapsToElements.keys():
                 bpy.data.objects.remove(o)
+            elif o.users == 0:
+                bpy.data.objects.remove(o)
+
         for m in bpy.data.meshes:
             if m.users == 0:
                 bpy.data.meshes.remove(m)
