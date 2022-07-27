@@ -242,10 +242,6 @@ def update_brush(obj):
 
 def cleanup_vertex_precision(ob):
     for v in ob.data.vertices:
-        if ob.modifiers:
-            mod = ob.modifiers[0]
-            if mod.type == "SOLIDIFY":
-                v.co.z = ob.floor_height
         v.co.x = round(v.co.x, bpy.context.scene.map_precision)
         v.co.y = round(v.co.y, bpy.context.scene.map_precision)
         v.co.z = round(v.co.z, bpy.context.scene.map_precision)
