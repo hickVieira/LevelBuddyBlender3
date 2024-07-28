@@ -1,3 +1,6 @@
+# Update 27 of July, 2024
+This addon is history. It has been a while since modern versions of Blender ship with geometry nodes, a powerful tool that can basically replicate this addon, and I recommend that you use it instead of this.
+
 # Level Buddy for Blender 3.0
 
 **Level Buddy** is a Blender add-on originally written by Matt Lucas.
